@@ -1,0 +1,72 @@
+/* Schedule container */
+.schedule-container {
+    width: 90%;
+    max-width: 1200px;
+    margin: auto;
+    overflow-x: auto;
+}
+
+/* Main schedule grid */
+.schedule-table {
+    display: grid;
+    grid-template-columns: auto repeat(7, 1fr); /* First column for time and 7 columns for days */
+    grid-template-rows: repeat(8, 50px); /* 7 time slots + 1 for the header */
+    gap: 1px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+}
+
+/* Grid header for time slots and days */
+.grid-header {
+    display: contents;
+}
+
+.grid-cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #ddd;
+    background-color: white;
+}
+
+/* Styling for the time cells */
+.grid-cell.time-cell {
+    background-color: #f0f0f5;
+    font-weight: bold;
+}
+
+.grid-cell.time-slot-cell {
+    background-color: #f0f0f5;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Grid cell for each day */
+.grid-cell.day-cell {
+    background-color: #f0f0f5;
+    font-weight: bold;
+}
+
+/* Event cells */
+.event-cell {
+    background-color: #007aff;
+    color: white;
+    padding: 8px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-align: left;
+}
+
+/* Event box content */
+.event-box {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Make sure the timetable is responsive */
+@media (max-width: 768px) {
+    .schedule-table {
+        font-size: 12px;
+    }
+}

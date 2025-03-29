@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <h2>Database Testing Page</h2>
+    <p>Use this form to test inserting and retrieving data from your database.</p>
+
+    <hr>
+
+    <!-- ✅ Create Event Form (With Reminder & Category Selection) -->
+    <h3>Add Calendar Event</h3>
+    <form id="eventForm">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label for="title" class="form-label">Title:</label>
+            <input type="text" class="form-control" name="title" required>
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Description:</label>
+            <input type="text" class="form-control" name="description" required>
+        </div>
+        <div class="mb-3">
+            <label for="start_time" class="form-label">Start Time:</label>
+            <input type="datetime-local" class="form-control" name="start_time" required>
+        </div>
+        <div class="mb-3">
+            <label for="end_time" class="form-label">End Time:</label>
+            <input type="datetime-local" class="form-control" name="end_time" required>
+        </div>
+        <div class="mb-3">
+            <label for="user_id" class="form-label">User:</label>
+            <select class="form-control" name="user_id" required>
+                {% for user in users %}
+                    <option value="{{ user.id }}">{{ user.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+    
+        <!-- ✅ Existing Category Dropdown (Hidden if "Create New Category" is Selected) -->
+        <div class="mb-3" id="existing_category_field">
+            <label for="category_id" class="form-label">Category:</label>
+            <select class="form-control" name="category_id">
+                {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        
+
+        <!-- ✅ Reminder Selection (Yes/No Dropdown) -->
+        <div class="mb-3">
+            <label for="add_reminder" class="form-label">Add Reminder?</label>
+            <select class="form-control" id="add_reminder" name="add_reminder">
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+            </select>
+        </div>
+
+        <!-- ✅ Reminder Time (Hidden by Default) -->
+        <div class="mb-3" id="reminder_time_field" style="display: none;">
+            <label for="reminder_time" class="form-label">Reminder Time:</label>
+            <input type="datetime-local" class="form-control" name="reminder_time">
+        </div>
+
+        <button type="submit" class="btn btn-success">Add Event</button>
+    </form>
+</div>
+
+<!-- ✅ Display Events -->
+<h3>Stored Events</h3>
+<ul class="list-group">
+    {% for event in events %}
+        <li class="list-group-item">
+            <strong>{{ event.title }}</strong> ({{ event.start_time }} - {{ event.end_time }})<br>
+            <small><strong>User:</strong> {{ event.user.username }}</small><br>
+
+            <!-- ✅ Show Assigned Category -->
+            <small><strong>Category:</strong>
+                {% for ec in event.eventcategory_set.all %}
+                    <span class="badge bg-info">{{ ec.category.name }}</span>
+                {% empty %}
+                    <span class="text-muted">No category assigned</span>
+                {% endfor %}
+            </small><br>
+
+            <!-- ✅ Show Reminder (If Exists) -->
+            <small><strong>Reminder:</strong>
+                {% for reminder in event.reminder_set.all %}
+                    <span class="badge bg-warning">⏰ {{ reminder.reminder_time }}</span>
+                    <button class="btn btn-danger btn-sm delete-reminder" data-reminder-id="{{ reminder.id }}">X</button>
+                {% empty %}
+                    <span class="text-muted">No reminder</span>
+                {% endfor %}
+            </small>
+
+            <button class="btn btn-danger btn-sm float-end delete-event" data-event-id="{{ event.id }}">Delete</button>
+        </li>
+    {% empty %}
+        <li class="list-group-item">No events yet.</li>
+    {% endfor %}
+</ul>
+</div>
+
+
+<!-- ✅ JavaScript Fix for Reminder & Category Selection -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    function submitForm(formId, url) {
+        const form = document.getElementById(formId);
+        form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            
+            const formData = new FormData(form);
+
+            console.log("Submitting form:", url);
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ": " + pair[1]);  // ✅ Log form data
+            }
+
+            fetch(url, {
+                method: "POST",
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Response:", data);
+                if (data.error) {
+                    alert("Error: " + data.error);
+                } else {
+                    alert("Success!");
+                    location.reload();
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        });
+    }
+
+    submitForm("eventForm", "{% url 'add_event' %}");
+
+    // ✅ Show/hide reminder input based on selection
+    document.getElementById("add_reminder").addEventListener("change", function() {
+        const reminderField = document.getElementById("reminder_time_field");
+        reminderField.style.display = this.value === "yes" ? "block" : "none";
+    });
+});
+</script>
+{% endblock %}

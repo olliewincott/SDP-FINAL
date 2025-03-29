@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <!-- Hero Section: Welcome to ADHD Planner -->
+    <section class="hero-section text-center py-5">
+        <div class="container">
+            <h2 class="display-4">Welcome to the ADHD Planner</h2>
+            <p class="lead">A simple, intuitive platform to help manage tasks, track goals, and stay on top of your daily schedule.</p>
+            
+            <!-- ✅ Chatbot Testing Button -->
+            <a href="{% url 'chatbot' %}" class="btn btn-info btn-lg mt-3">Chatbot Testing</a>
+            
+            <!-- ✅ Database Testing Button -->
+            <a href="{% url 'db_test' %}" class="btn btn-secondary btn-lg mt-3">Database Testing</a>
+            
+            <!-- ✅ Start Planning Button -->
+            <a href="{% url 'planner' %}" class="btn btn-primary btn-lg mt-3">Start Planning</a>
+       
+            <!-- ✅ Dashboard Button (NEW) -->
+            <a href="{% url 'dashboard' %}" class="btn btn-warning btn-lg mt-3">Go to Dashboard</a>
+
+
+        </div>
+    </section>
+    
+    <!-- Features Section -->
+    <section class="container my-5">
+        <div class="row text-center">
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Task Management</h5>
+                        <p class="card-text">Easily add, track, and manage your daily tasks. Stay on top of your to-do list with our simple interface.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Goal Setting</h5>
+                        <p class="card-text">Set and track your daily, weekly, and long-term goals. Stay motivated and focused on what matters most.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Mood Tracker</h5>
+                        <p class="card-text">Track your mood throughout the day. Stay mindful of your emotions and how they impact your productivity.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works-section text-center py-5">
+        <div class="container">
+            <h3 class="mb-4">How It Works</h3>
+            <p class="lead">Our ADHD Planner helps you create a structured and mindful approach to your day. With tools for task management, goal setting, mood tracking, and more, it's designed to help you navigate your daily routine with ease.</p>
+            <a href="{% url 'planner' %}" class="btn btn-primary btn-lg mt-3">Get Started Now</a>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="container my-5">
+        <div class="row">
+            <div class="col-md-6 mx-auto">
+                <div class="card testimonial-card p-4">
+                    <h5 class="card-title text-center">What Our Users Are Saying</h5>
+                    <blockquote class="blockquote text-center">
+                        <p class="mb-0">"This app has been a game-changer for me! I feel so much more in control of my tasks and goals." - User A</p>
+                    </blockquote>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Chatbot Section -->
+    <section class="container text-center mb-5">
+        <h4 class="mb-4">Need Help? Ask Our Virtual Assistant</h4>
+        <zapier-interfaces-chatbot-embed is-popup="true" chatbot-id="cm5peplw7000qjpfuk52tnfwj"></zapier-interfaces-chatbot-embed>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer text-center py-3">
+        &copy; 2025 Oliver Wincott. All rights reserved.
+    </footer>
+
+    <!-- Dark Mode Styling -->
+    <style>
+        /* General Dark Mode Styles */
+        body {
+            background-color: #1c1c1e !important;
+            color: #d1d1d6 !important;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            background-color: #2c2c2e;
+            padding: 50px 0;
+            border-radius: 8px;
+        }
+
+        /* Features Cards */
+        .feature-card {
+            background-color: #2c2c2e;
+            border: 1px solid #3a3a3c;
+            color: #d1d1d6;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(255, 255, 255, 0.05);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .feature-card:hover {
+            transform: scale(1.03);
+        }
+
+        /* How It Works Section */
+        .how-it-works-section {
+            background-color: #2c2c2e;
+            padding: 50px 0;
+            border-radius: 8px;
+        }
+
+        /* Testimonials */
+        .testimonial-card {
+            background-color: #2c2c2e;
+            border: 1px solid #3a3a3c;
+            color: #d1d1d6;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(255, 255, 255, 0.05);
+        }
+
+        /* Footer */
+        .footer {
+            background-color: #2c2c2e;
+            color: #d1d1d6;
+            border-top: 1px solid #3a3a3c;
+        }
+
+        /* Button Styling */
+        .btn {
+            border-radius: 8px;
+            padding: 12px 20px;
+        }
+
+        .btn-primary {
+            background-color: #007aff !important; /* Apple Blue */
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #005ecb !important;
+        }
+
+        .btn-info {
+            background-color: #5ac8fa !important;
+            border: none;
+        }
+
+        .btn-info:hover {
+            background-color: #3bbefc !important;
+        }
+
+        .btn-secondary {
+            background-color: #636366 !important;
+            border: none;
+        }
+
+        .btn-secondary:hover {
+            background-color: #48484a !important;
+        }
+    </style>
+{% endblock %}

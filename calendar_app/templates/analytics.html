@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+{% endblock head %}
+
+{% block content %}
+<div class="container-fluid main-dashboard-bg text-light" style="min-height: 100vh;">
+  <div class="row">
+    {% include 'includes/sidebar.html' %}
+    <main class="col-12 col-md-9 col-lg-10 py-3 dashboard-content">
+      {% include 'includes/topbar.html' with page_title="Analytics" %}
+      <!-- Chart Section -->
+      <div class="row">
+        <!-- Monthly Completed Tasks Graph -->
+        <div class="col-12 mb-3">
+          <div class="widget chart">
+            <h5>Monthly Completed Tasks</h5>
+            <canvas id="tasksChart"></canvas>
+          </div>
+        </div>
+        <!-- Monthly Wellness Stats Graph -->
+        <div class="col-12 mb-3">
+          <div class="widget chart">
+            <h5>Monthly Wellness Stats</h5>
+            <canvas id="wellnessChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Global URLs -->
+<script>
+  window.monthlyProductivityUrl = "{% url 'monthly_productivity_json' %}";
+  window.monthlyWellnessUrl = "{% url 'monthly_wellness_json' %}";
+</script>
+
+{% include 'includes/scripts.html' %}
+{% block page_scripts %}
+<script src="{% static 'js/analytics.js' %}"></script>
+{% endblock %}
+{% endblock %}

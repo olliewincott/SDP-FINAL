@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Help - ADHD Planner{% endblock %}
+
+{% block content %}
+    <header class="bg-secondary text-white text-center py-4">
+        <h1>Help & Resources</h1>
+    </header>
+
+    <main class="container my-5">
+        <h2 class="text-center">How to Use the ADHD Planner</h2>
+        <p class="lead text-center">Find detailed information about how to navigate and use the ADHD Planner effectively.</p>
+
+        <section>
+            <h3>Getting Started</h3>
+            <p>This guide will walk you through the basic setup and features of the ADHD Planner. You can start by creating your personal schedule or exploring available tasks.</p>
+        </section>
+
+        <section>
+            <h3>Features</h3>
+            <ul>
+                <li>Task Prioritization: Sort your daily tasks by priority.</li>
+                <li>Planner Customization: Modify your planner according to your needs.</li>
+                <li>Focus Tools: Use various tools to help you stay focused and organized.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h3>Need Help?</h3>
+            <p>If you're having trouble, feel free to reach out through the chat below, and our assistant will guide you.</p>
+        </section>
+
+        <zapier-interfaces-chatbot-embed is-popup='true' chatbot-id='cm5peplw7000qjpfuk52tnfwj'></zapier-interfaces-chatbot-embed>
+    </main>
+
+    <footer class="bg-dark text-white text-center py-3">
+        &copy; 2025 Oliver Wincott. All rights reserved.
+    </footer>
+{% endblock %}

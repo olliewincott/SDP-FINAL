@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock head %}
+
+{% block content %}
+<div class="container-fluid main-dashboard-bg text-light" style="min-height: 100vh;">
+  <div class="row">
+    <!-- SIDEBAR -->
+    <aside class="col-12 col-md-3 col-lg-2 p-3 sidebar" id="sidebar">
+      <div class="profile-section text-center mb-4">
+        <h4>Ollie Wincott</h4>
+        <p>User logged in</p>
+      </div>
+      <nav class="sidebar-nav">
+        <ul class="list-unstyled">
+          <li><a href="{% url 'dashboard' %}" class="text-light"><i class="fas fa-home"></i> Dashboard</a></li>
+          <li><a href="{% url 'tasks' %}" class="text-light"><i class="fas fa-tasks"></i> Tasks</a></li>
+          <li><a href="{% url 'analytics' %}" class="text-light"><i class="fas fa-chart-line"></i> Analytics</a></li>
+          <li><a href="{% url 'calendar' %}" class="text-light"><i class="fas fa-calendar-alt"></i> Calendar</a></li>
+          <li><a href="#" class="text-light"><i class="fas fa-cog"></i> Settings</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="col-12 col-md-9 col-lg-10 py-3 dashboard-content">
+      <!-- TOP BAR -->
+      <div class="row align-items-center mb-3 rounded p-3 top-bar">
+        <div class="col">
+          <h2 class="mb-0">Calendar</h2>
+        </div>
+      </div>
+      <!-- CALENDAR PLACEHOLDER -->
+      <div class="row">
+        <div class="col-12 mb-3">
+          <div class="widget calendar">
+            {% include 'fullcalendar.html' %}
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  window.eventsJsonUrl = "{% url 'events_json' %}";
+</script>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/js/bootstrap.min.js"></script>
+<script src="{% static 'js/calendar.js' %}"></script>
+{% endblock %}

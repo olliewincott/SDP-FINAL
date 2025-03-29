@@ -1,0 +1,76 @@
+{% load static %}
+
+{% block content %}
+<!-- Fullscreen BotUI Container -->
+<div id="botui-app" style="height: 100vh; width: 100%; margin: 0; padding: 0;">
+  <bot-ui></bot-ui>
+</div>
+
+<!-- BotUI CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui-theme-default.css">
+
+<!-- Vue + BotUI JS -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/botui/build/botui.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const botui = new BotUI('botui-app');
+  let conversationHistory = [];
+
+  // Initial Welcome Message
+  botui.message.add({ content: 'Hello! How can I assist you with your schedule today?' })
+    .then(startChat);
+
+  function startChat() {
+    botui.action.text({
+      action: { placeholder: 'Type your message...' }
+    }).then(res => {
+      const userMessage = res.value.trim();
+      if (!userMessage) return startChat();
+
+      conversationHistory.push({ role: 'user', content: userMessage });
+
+      // Show Typing Indicator
+      botui.message.add({ loading: true }).then(function (index) {
+        fetch('/chatbot/response/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+          },
+          body: JSON.stringify({
+            message: userMessage,
+            history: conversationHistory
+          })
+        })
+        .then(r => r.json())
+        .then(data => {
+          botui.message.remove(index);
+          const botReply = data.response || 'Sorry, I could not understand.';
+          conversationHistory.push({ role: 'assistant', content: botReply });
+          botui.message.add({ content: botReply }).then(startChat);
+        })
+        .catch(error => {
+          botui.message.remove(index);
+          console.error("Fetch error:", error);
+          botui.message.add({ content: 'Error connecting to server.' }).then(startChat);
+        });
+      });
+    });
+  }
+
+  function getCSRFToken() {
+    const name = 'csrftoken';
+    const cookies = document.cookie.split(';');
+    for (let c of cookies) {
+      if (c.trim().startsWith(name + '=')) {
+        return c.trim().substring(name.length + 1);
+      }
+    }
+    return '';
+  }
+});
+</script>
+{% endblock %}

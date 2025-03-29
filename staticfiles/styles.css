@@ -1,0 +1,117 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f9;
+}
+header {
+    background: #adacac; /* Updated color */
+    color: #fff;
+    padding: 1rem 0;
+    text-align: center;
+}
+nav {
+    background: #c9c8c8; /* Updated color */
+    padding: 0.5rem;
+    text-align: center;
+}
+nav a {
+    color: #fff;
+    margin: 0 1rem;
+    text-decoration: none;
+}
+nav a:hover {
+    text-decoration: underline;
+}
+main {
+    padding: 2rem;
+    text-align: center;
+}
+footer {
+    background: #6f6e6e; /* Updated color */
+    color: #fff;
+    text-align: center;
+    padding: 1rem 0;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
+
+/* Styling for FAQ section */
+.faq {
+    margin-top: 2rem;
+}
+
+.faq-item {
+    margin-bottom: 1.5rem;
+}
+
+.faq-item h4 {
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+/* Styling for contact form */
+form {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+form input, form textarea {
+    width: 80%;
+    padding: 0.8rem;
+    margin: 0.5rem 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+form button {
+    padding: 0.8rem 1.5rem;
+    background-color: #333;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+form button:hover {
+    background-color: #555;
+}
+/* Style for the planner input form */
+.planner-form {
+    margin: 1rem 0;
+    text-align: center;
+}
+
+.planner-form input {
+    padding: 0.5rem;
+    margin: 0.5rem;
+    width: 200px;
+}
+
+.planner-form button {
+    padding: 0.5rem 1rem;
+    background-color: #333;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.planner-form button:hover {
+    background-color: #555;
+}
+
+/* Style for the task list */
+#task-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+#task-list li {
+    background-color: #e2e2e2;
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    border-radius: 5px;
+    text-align: center;
+}

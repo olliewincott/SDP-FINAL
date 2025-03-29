@@ -1,0 +1,103 @@
+body {
+    font-family: "SF Pro", Arial, sans-serif;
+    margin-top: 20px;
+    background-color: #f8f9fa;
+}
+
+.schedule-container {
+    width: 90%;
+    max-width: 1200px;
+    margin: auto;
+    overflow-x: auto;
+}
+
+.schedule-table {
+    width: 100%;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    table-layout: fixed; /* Ensures proper column width */
+}
+
+.schedule-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.schedule-table thead {
+    background: #f0f0f5;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.schedule-table thead th {
+    padding: 15px;
+    font-weight: 600;
+    text-align: center;
+    color: #333;
+    border-bottom: 2px solid #ddd;
+}
+
+.schedule-table tbody td {
+    position: relative;
+    text-align: center;
+    padding: 10px;
+    min-height: 50px;
+    vertical-align: middle;
+    border-bottom: 1px solid #eee;
+}
+
+.schedule-table tbody td.time-slot {
+    background: #fafafa;
+    font-weight: 600;
+    color: #666;
+    text-align: right;
+    padding-right: 10px;
+}
+
+.event-box {
+    display: block;
+    background: #007aff;
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    width: 100%;
+    margin: 5px auto;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.event-box span {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+/* Ensure correct event placement in table */
+.schedule-table td.event-cell {
+    display: block;
+    position: relative;
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Ensure the container is scrollable horizontally */
+.schedule-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Media Queries to make the timetable responsive */
+@media (max-width: 768px) {
+    .schedule-table {
+        font-size: 12px;
+    }
+    .schedule-table thead th {
+        padding: 10px;
+    }
+    .schedule-table tbody td {
+        padding: 8px;
+    }
+}

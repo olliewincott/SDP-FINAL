@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'scheduler.css' %}">
+
+<!-- Tab Navigation Section -->
+<div class="container mt-4">
+    <ul class="nav nav-tabs" id="plannerTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="daily-tab" data-bs-toggle="tab" data-bs-target="#daily" role="tab" aria-controls="daily" aria-selected="true">Daily</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="weekly-tab" data-bs-toggle="tab" data-bs-target="#weekly" role="tab" aria-controls="weekly" aria-selected="false">Weekly</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="monthly-tab" data-bs-toggle="tab" data-bs-target="#monthly" role="tab" aria-controls="monthly" aria-selected="false">Monthly</a>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3" id="plannerTabsContent">
+        <!-- Daily Tab -->
+        <div class="tab-pane fade show active" id="daily" role="tabpanel">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card p-4 shadow-sm">
+                        <h3>Today's Schedule</h3>
+                        <ul class="list-group">
+                            {% if chatbot_responses %}
+                                {% for response in chatbot_responses %}
+                                    <li class="list-group-item">
+                                        <strong>User:</strong> {{ response.user_message }}<br>
+                                        <strong>Bot:</strong> {{ response.bot_response }}
+                                    </li>
+                                {% endfor %}
+                            {% else %}
+                                <li class="list-group-item">No chatbot responses yet.</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card p-4 shadow-sm">
+                        <h3>Today's Goals</h3>
+                        <ul class="list-group">
+                            <li class="list-group-item">Complete 3 tasks</li>
+                            <li class="list-group-item">Focus on work for 2 hours</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-12">
+                    <h3>Your Tasks</h3>
+                    <ul id="task-list" class="list-group">
+                        {% if tasks %}
+                            {% for task in tasks %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ task.name }}
+                                    <button class="btn btn-danger btn-sm delete-task">X</button>
+                                </li>
+                            {% endfor %}
+                        {% else %}
+                            <li class="list-group-item">No tasks added yet. Add a new task below!</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow-sm p-4">
+                        <form id="planner-form" method="POST" class="d-flex gap-2">
+                            {% csrf_token %}
+                            <input type="text" id="task" name="task" class="form-control" placeholder="Add a new task" required>
+                            <button type="submit" class="btn btn-primary">Add Task</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- End of Daily Tab -->
+
+        <!-- Weekly Tab -->
+        <div class="tab-pane fade" id="weekly" role="tabpanel">
+            {% include 'includes/schedule_table.html' %}
+        </div>
+
+        <!-- Monthly Tab -->
+        <div class="tab-pane fade" id="monthly" role="tabpanel">
+            <h3>Monthly Planner</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if schedules %}
+                        {% for schedule in schedules %}
+                            <tr>
+                                <td>{{ schedule.start_time|date:"d M Y" }}</td>
+                                <td>{{ schedule.title }}</td>
+                                <td>{{ schedule.description }}</td>
+                                <td>{{ schedule.start_time|date:"H:i" }}</td>
+                                <td>{{ schedule.end_time|date:"H:i" }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5">No schedules available for the month.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    let tabs = document.querySelectorAll('a[data-bs-toggle="tab"]');
+    tabs.forEach(tab => {
+        tab.addEventListener("click", function () {
+            let target = this.getAttribute("data-bs-target");
+            document.querySelectorAll(".tab-pane").forEach(pane => {
+                pane.classList.remove("show", "active");
+            });
+            document.querySelector(target).classList.add("show", "active");
+        });
+    });
+});
+</script>
+
+
+{% endblock %}

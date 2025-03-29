@@ -1,0 +1,126 @@
+body {
+    font-family: "SF Pro", Arial, sans-serif;
+    margin-top: 20px;
+    background-color: #f8f9fa;
+}
+
+.schedule-container {
+    width: 90%;
+    max-width: 1200px;
+    margin: auto;
+    overflow: hidden;
+    padding-bottom: 20px;
+}
+
+/* The container that holds the timetable and can scroll internally */
+.scroll-container {
+    max-height: 800px; /* or any height you prefer */
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.schedule-table {
+    width: 100%;
+    background: white;
+}
+
+.schedule-table table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.schedule-table thead {
+    background: #f0f0f5;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.schedule-table thead th {
+    padding: 15px;
+    font-weight: 600;
+    text-align: center;
+    color: #333;
+    border-bottom: 2px solid #ddd;
+}
+
+/* Each row is 80px tall => 1 minute ~ 1.33px if you do partial coverage
+   We draw a faint horizontal line every 25% of the row (i.e., every 20px). */
+.schedule-table tbody tr {
+    height: 80px;
+    background-image: linear-gradient(to bottom, transparent 75%, #eee 75%);
+    background-size: 100% 25%; /* draws a horizontal line every 25% of row */
+}
+
+.schedule-table tbody td {
+    position: relative;
+    text-align: center;
+    padding: 0; /* no extra padding so event boxes can fill the cell */
+    vertical-align: top;
+    border-bottom: 1px solid #eee;
+}
+
+/* Time slot column styling */
+.schedule-table tbody td.time-slot {
+    background: #fafafa;
+    font-weight: 600;
+    color: #666;
+    width: 70px;
+    text-align: right;
+    padding: 10px;
+}
+
+/* Day columns */
+.event-cell {
+    position: relative; /* So we can absolutely position .event-box inside */
+}
+
+/* 
+   The event box is absolutely positioned based on offset_minutes and height_minutes 
+   (set inline in your template). We add small margins to avoid boundary overlap. 
+*/
+.event-box {
+    position: absolute;
+    left: 5px;
+    right: 5px;
+    background: #007aff;
+    color: #fff;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 4px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+
+    /* 
+       We add top/bottom margins of 2px each, 
+       so if you set inline style: height: calc(100% - 4px), 
+       that minus 4px accounts for the total 2px top + 2px bottom margin.
+    */
+    margin: 2px auto;
+}
+
+/* Additional styling inside the event box */
+.event-box strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.event-box span {
+    display: block;
+    font-size: 12px;
+    opacity: 0.9;
+    line-height: 1.2;
+    margin-top: 2px;
+}
+
+.event-box em {
+    display: block;
+    font-style: italic;
+    opacity: 0.8;
+    margin-top: 2px;
+}
