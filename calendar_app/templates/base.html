@@ -1,115 +1,171 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
-
-    <!-- Custom Dark Mode Styling -->
-    <style>
-        body {
-            background-color: #1c1c1e !important;
-            color: #d1d1d6 !important;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif;
-        }
-
-        .navbar {
-            background-color: #2c2c2e !important;
-            border-bottom: 1px solid #3a3a3c;
-        }
-
-        .navbar-brand {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #ffffff !important;
-            transition: color 0.3s;
-        }
-
-        .navbar-brand:hover {
-            color: #c6ccd2 !important;
-        }
-
-        .navbar-nav .nav-link {
-            font-size: 1rem;
-            color: #d1d1d6 !important;
-            padding-left: 20px;
-            padding-right: 20px;
-            transition: color 0.3s ease-in-out;
-        }
-
-        .navbar-nav .nav-link:hover {
-            color: #ffffff !important;
-        }
-
-        .navbar-toggler {
-            border-color: #ffffff !important;
-        }
-
-        .navbar-toggler-icon {
-            filter: invert(1);
-        }
-
-        .dropdown-menu {
-            background-color: #2c2c2e !important;
-            border: 1px solid #3a3a3c !important;
-            box-shadow: 0px 4px 6px rgba(255, 255, 255, 0.1);
-        }
-
-        .dropdown-item {
-            color: #d1d1d6 !important;
-        }
-
-        .dropdown-item:hover {
-            background-color: #3a3a3c !important;
-            color: #ffffff !important;
-        }
-
-        .container {
-            background-color: #1c1c1e;
-            padding: 20px;
-            border-radius: 10px;
-        }
-    </style>
-
-    {% block head %}{% endblock %}
+  <meta charset="UTF-8">
+  <title>PLN AI</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+  <style>
+    /* General Dark Styles */
+    body {
+      background-color: #1c1c1e;
+      color: #d1d1d6;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    /* Top Bar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #2c2c2e;
+      border-bottom: 1px solid #3a3a3c;
+      padding: 0.75rem 1rem;
+      position: relative;
+      z-index: 10;
+      height: 60px; /* Fixed height for positioning */
+    }
+    .topbar .brand {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #ffffff;
+      text-decoration: none;
+    }
+    .hamburger {
+      background: none;
+      border: none;
+      color: #ffffff;
+      font-size: 1.8rem;
+      cursor: pointer;
+    }
+    /* Overlay Dropdown Menu (anchored just beneath the top bar) */
+    .overlay-menu {
+      position: absolute;
+      top: 60px; /* Immediately below the topbar */
+      left: 0;
+      right: 0;
+      background-color: #2c2c2e;
+      height: 0;
+      overflow: hidden;
+      transition: height 0.4s ease;
+      z-index: 9999;
+    }
+    .overlay-menu.open {
+      height: 300px; /* Fixed height when expanded */
+    }
+    .overlay-close {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: #ffffff;
+      font-size: 2rem;
+      cursor: pointer;
+    }
+    /* Overlay Content: Left-aligned text */
+    .overlay-content {
+      max-width: 800px;
+      margin: 2rem 1rem;
+      text-align: left;
+    }
+    .overlay-heading {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: #ffffff;
+    }
+    .overlay-nav {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      text-align: left;
+    }
+    .overlay-nav li {
+      margin: 1rem 0;
+    }
+    .overlay-nav a {
+      color: #ffffff;
+      font-size: 1.2rem;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .overlay-nav a:hover {
+      color: #a5a5a5;
+    }
+    /* Free Trial Button */
+    .free-trial {
+      display: inline-block;
+      background-color: #0070ad;
+      color: #ffffff;
+      padding: 0.75rem 1.5rem;
+      border-radius: 30px;
+      text-decoration: none;
+      font-weight: 600;
+      margin-top: 2rem;
+      transition: background 0.2s;
+    }
+    .free-trial:hover {
+      background-color: #005f8a;
+    }
+    /* Main Container */
+    .container {
+      background-color: #1c1c1e;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 1rem auto;
+      max-width: 1200px;
+    }
+  </style>
+  {% block head %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg">
-        <a class="navbar-brand" href="{% url 'index' %}">PLN AI</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+  <div class="topbar">
+    <a href="{% url 'index' %}" class="brand">
+        <img src="{% static 'images/PLNAI.jpg' %}" alt="PLN AI Logo" style="height:50px; width:75px;">
+    </a>
+    <button class="hamburger" id="hamburgerBtn">
+      <i class="fas fa-bars"></i>
+    </button>
+  </div>
 
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ml-auto">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
-                       data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        Menu
-                    </a>
-                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                        <a class="dropdown-item" href="{% url 'index' %}">Home</a>
-                        <a class="dropdown-item" href="{% url 'planner' %}">Planner</a>
-                        <a class="dropdown-item" href="{% url 'help' %}">Help</a>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </nav>
-    
-    <div class="container mt-4">
-        {% block content %}{% endblock %}
+  <!-- Overlay Dropdown Menu -->
+  <div class="overlay-menu" id="menuOverlay">
+    <button class="overlay-close" id="closeMenuBtn">&times;</button>
+    <div class="overlay-content">
+      <div class="overlay-heading">Get Started</div>
+      <ul class="overlay-nav">
+        <li><a href="{% url 'login' %}">Login / Register</a></li>
+        <li><a href="{% url 'help' %}">Help</a></li>
+      </ul>
     </div>
+  </div>
 
-    <!-- Bootstrap JS and dependencies -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    
-    {% block scripts %}{% endblock %}
+  <!-- Main Content Container -->
+  <div class="container">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Bootstrap JS and dependencies -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script>
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const closeMenuBtn = document.getElementById('closeMenuBtn');
+
+    hamburgerBtn.addEventListener('click', () => {
+      menuOverlay.classList.add('open');
+    });
+
+    closeMenuBtn.addEventListener('click', () => {
+      menuOverlay.classList.remove('open');
+    });
+  </script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

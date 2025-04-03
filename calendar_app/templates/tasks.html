@@ -1,10 +1,13 @@
-{% extends 'base.html' %}
 {% load static %}
 
 {% block head %}
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 <style>
+  nav.navbar {
+    display: none !important;
+  }
   .task-list li {
     background-color: #2c2c2e;
     border: 1px solid #3a3a3c;
@@ -131,7 +134,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const listItem = document.createElement("li");
         listItem.textContent = `${task.title} - Due: ${new Date(task.due_date).toLocaleDateString()}`;
         listItem.style.cursor = "pointer";
-        // On click, mark task as complete
         listItem.addEventListener('click', function() {
           updateTaskStatus(task.id, true);
         });
@@ -148,7 +150,6 @@ document.addEventListener('DOMContentLoaded', function() {
         listItem.textContent = `${task.title} - Due: ${new Date(task.due_date).toLocaleDateString()}`;
         listItem.style.cursor = "pointer";
         listItem.classList.add("completed-task");
-        // On click, mark task as incomplete
         listItem.addEventListener('click', function() {
           updateTaskStatus(task.id, false);
         });
@@ -173,7 +174,6 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(response => response.json())
     .then(data => {
       console.log("Task updated:", data);
-      // Update local tasks array and re-render tasks
       allTasks = allTasks.map(task => {
         if (task.id == taskId) {
           task.completed = data.completed;

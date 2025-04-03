@@ -1,76 +1,86 @@
 {% load static %}
-
-{% block content %}
-<!-- Fullscreen BotUI Container -->
-<div id="botui-app" style="height: 100vh; width: 100%; margin: 0; padding: 0;">
-  <bot-ui></bot-ui>
-</div>
-
-<!-- BotUI CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui-theme-default.css">
-
-<!-- Vue + BotUI JS -->
-<script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/botui/build/botui.min.js"></script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  const botui = new BotUI('botui-app');
-  let conversationHistory = [];
-
-  // Initial Welcome Message
-  botui.message.add({ content: 'Hello! How can I assist you with your schedule today?' })
-    .then(startChat);
-
-  function startChat() {
-    botui.action.text({
-      action: { placeholder: 'Type your message...' }
-    }).then(res => {
-      const userMessage = res.value.trim();
-      if (!userMessage) return startChat();
-
-      conversationHistory.push({ role: 'user', content: userMessage });
-
-      // Show Typing Indicator
-      botui.message.add({ loading: true }).then(function (index) {
-        fetch('/chatbot/response/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-          },
-          body: JSON.stringify({
-            message: userMessage,
-            history: conversationHistory
-          })
-        })
-        .then(r => r.json())
-        .then(data => {
-          botui.message.remove(index);
-          const botReply = data.response || 'Sorry, I could not understand.';
-          conversationHistory.push({ role: 'assistant', content: botReply });
-          botui.message.add({ content: botReply }).then(startChat);
-        })
-        .catch(error => {
-          botui.message.remove(index);
-          console.error("Fetch error:", error);
-          botui.message.add({ content: 'Error connecting to server.' }).then(startChat);
-        });
-      });
-    });
-  }
-
-  function getCSRFToken() {
-    const name = 'csrftoken';
-    const cookies = document.cookie.split(';');
-    for (let c of cookies) {
-      if (c.trim().startsWith(name + '=')) {
-        return c.trim().substring(name.length + 1);
-      }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - PLN AI</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600&display=swap" rel="stylesheet">
+  <!-- BotUI CSS (if needed by chatbot.html, otherwise can be removed) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui-theme-default.css">
+  <!-- Custom Dashboard CSS -->
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <style>
+    /* Hide any navbar if present */
+    nav.navbar {
+      display: none !important;
     }
-    return '';
-  }
-});
-</script>
-{% endblock %}
+  </style>
+</head>
+<body>
+  <div class="container-fluid main-dashboard-bg text-light" style="min-height: 100vh;">
+    <div class="row">
+      {% include 'includes/sidebar.html' %}
+      <main class="col-12 col-md-9 col-lg-10 py-3 dashboard-content">
+        <div class="row align-items-center mb-3 rounded p-3 top-bar">
+          <div class="col">
+            <h2 class="mb-0">Dashboard</h2>
+          </div>
+        </div>
+        <div class="row d-flex align-items-stretch">
+          <div class="col-lg-6 mb-3 d-flex">
+            <div class="widget calendar flex-fill d-flex flex-column">
+              <h5>My Calendar</h5>
+              {% include 'dailyview.html' with daily_view=True %}
+            </div>
+          </div>
+          <div class="col-lg-6 mb-3">
+            <div class="row">
+              <div class="col-12 mb-3">
+                <div class="widget wellness">
+                  {% include 'includes/wellness_stats.html' %}
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="widget tasks">
+                  {% include 'includes/daily_tasks.html' %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Global URLs for JS -->
+  <script>
+    window.tasksJsonUrl = "{% url 'all_tasks_json' %}";
+    window.updateTaskStatusUrl = "{% url 'update_task_status' %}";
+    window.wellnessJsonUrl = "{% url 'daily_wellness_json' %}";
+    window.incrementWellnessUrl = "{% url 'increment_wellness' %}";
+    window.monthlyProductivityUrl = "{% url 'monthly_productivity_json' %}";
+    window.eventsJsonUrl = "{% url 'events_json' %}";
+  </script>
+
+  <!-- Include the Chatbot Template -->
+  {% include 'chatbot.html' %}
+
+  <!-- Bootstrap and other JS dependencies -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/botui/build/botui.min.js"></script>
+  {% include 'includes/scripts.html' %}
+  {% block page_scripts %}
+  <script src="{% static 'js/dashboard.js' %}"></script>
+  {% endblock %}
+</body>
+</html>

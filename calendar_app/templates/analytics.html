@@ -1,9 +1,19 @@
-{% extends 'base.html' %}
 {% load static %}
 
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+<style>
+  /* Hide the navbar on this page */
+  nav.navbar {
+    display: none !important;
+  }
+  /* Optional: apply a max-height to all canvas elements if needed */
+  canvas {
+    max-height: 400px;
+  }
+</style>
 {% endblock head %}
 
 {% block content %}
@@ -18,14 +28,14 @@
         <div class="col-12 mb-3">
           <div class="widget chart">
             <h5>Monthly Completed Tasks</h5>
-            <canvas id="tasksChart"></canvas>
+            <canvas id="tasksChart" style="max-height: 400px;"></canvas>
           </div>
         </div>
         <!-- Monthly Wellness Stats Graph -->
         <div class="col-12 mb-3">
           <div class="widget chart">
             <h5>Monthly Wellness Stats</h5>
-            <canvas id="wellnessChart"></canvas>
+            <canvas id="wellnessChart" style="max-height: 400px;"></canvas>
           </div>
         </div>
       </div>

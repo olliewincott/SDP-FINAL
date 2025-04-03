@@ -5,13 +5,18 @@ from django.contrib.auth.models import User
 import json
 import openai
 from django.conf import settings
-from .models import CalendarEvent, Reminder, Category, EventCategory, Task, DailyWellness
+from .models import CalendarEvent, Reminder, Category, EventCategory, Task, DailyWellness, MoodEntry
 from datetime import datetime, timedelta, date
 import re
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.db.models import Avg
 from django.contrib.auth.forms import UserCreationForm
+from django.utils import timezone
+from django.utils.timezone import localtime
+from django.utils.timezone import now as timezone_now, make_aware, is_naive
+
+
 
 # Set the OpenAI API key from settings (loaded from your .env file)
 openai.api_key = settings.OPENAI_API_KEY
@@ -20,6 +25,7 @@ openai.api_key = settings.OPENAI_API_KEY
 # FullCalendar Integration Views
 # -----------------------------
 
+@login_required
 def fullcalendar_view(request):
     """
     Renders the FullCalendar timetable.
@@ -27,13 +33,14 @@ def fullcalendar_view(request):
     """
     return render(request, 'fullcalendar.html')
 
+@login_required
 def events_json(request):
-    """
-    Returns JSON-formatted event data for FullCalendar.
-    FullCalendar requires events to be in ISO format.
-    """
-    # Optionally, you can filter events by a date range using GET parameters.
-    events = CalendarEvent.objects.all().order_by("start_time")
+    events = CalendarEvent.objects.filter(
+        user=request.user
+    ).exclude(
+        reminder__isnull=False  # Exclude events that have associated reminders
+    ).order_by("start_time")
+
     event_list = []
     for event in events:
         event_list.append({
@@ -41,9 +48,9 @@ def events_json(request):
             "start": event.start_time.isoformat(),
             "end": event.end_time.isoformat(),
             "description": event.description,
-            # You can add more fields like URL, color, etc.
         })
     return JsonResponse(event_list, safe=False)
+
 
 # -----------------------------
 # Other Existing Views
@@ -52,22 +59,42 @@ def events_json(request):
 def index(request):
     return render(request, 'index.html')
 
+@login_required
 def dashboard(request):
-        return render(request, 'dashboard.html')
+    now = timezone_now()
+    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = now.replace(hour=23, minute=59, second=59)
 
+    if is_naive(start_of_day):
+        start_of_day = make_aware(start_of_day)
+    if is_naive(end_of_day):
+        end_of_day = make_aware(end_of_day)
 
+    reminders = Reminder.objects.filter(
+        event__user=request.user,
+        reminder_time__range=(start_of_day, end_of_day)
+    ).order_by('reminder_time')
+
+    return render(request, 'dashboard.html', {
+        'reminders': reminders
+    })
+
+@login_required
 def help(request):
-        return render(request, 'help.html')
+    return render(request, 'help.html')
 
+@login_required
 def chatbot(request):
     return render(request, 'chatbot.html')
 
+@login_required
 def db_test(request):
     return render(request, 'db_test.html', {
-        "users": User.objects.all(),
-        "events": CalendarEvent.objects.all(),
-        "categories": Category.objects.all(),
-        "reminders": Reminder.objects.all()
+        # For testing, you might only want the current user's events/reminders:
+        "users": User.objects.all(),  # This one is global; adjust if needed.
+        "events": CalendarEvent.objects.filter(user=request.user),
+        "categories": Category.objects.all(),  # Categories might be global.
+        "reminders": Reminder.objects.filter(event__user=request.user)
     })
 
 # (The following functions are kept for event creation via chatbot and manual event handling.)
@@ -87,9 +114,8 @@ def parse_datetime(date_str, time_str):
 def create_event_from_details(details):
     """
     Creates an event using details provided in a dictionary.
-    Expected keys: 'title', 'date', 'start_time', 'end_time', 'user_id'
+    Expected keys: 'title', 'date', 'start_time', 'end_time', and 'user_id'
     Optional keys: 'description' and 'reminder' (reminder time as "HH:MM AM/PM").
-    The 'user_id' can be numeric (as a string) or a username (e.g., "testuser").
     """
     title = details.get("title")
     date_str = details.get("date")
@@ -108,6 +134,7 @@ def create_event_from_details(details):
     if end_time <= start_time:
         raise Exception("End time must be after start time.")
     
+    # Ensure the event is created for the correct user.
     try:
         user_id = int(user_identifier)
         user = get_object_or_404(User, id=user_id)
@@ -132,6 +159,7 @@ def create_event_from_details(details):
     return event
 
 @csrf_exempt
+@login_required
 def chatbot_response(request):
     """
     Handles chatbot interactions using OpenAI's ChatCompletion API.
@@ -207,6 +235,7 @@ def chatbot_response(request):
     return JsonResponse({"error": "Invalid request method."}, status=400)
 
 @csrf_exempt
+@login_required
 def add_event(request):
     if request.method == "POST":
         try:
@@ -257,19 +286,21 @@ def add_event(request):
     return JsonResponse({"error": "Invalid request"}, status=400)
 
 @csrf_exempt
+@login_required
 def delete_event(request, event_id):
     try:
-        event = get_object_or_404(CalendarEvent, id=event_id)
+        event = get_object_or_404(CalendarEvent, id=event_id, user=request.user)
         event.delete()
         return JsonResponse({"success": "Event deleted successfully!"})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+@login_required
 def all_tasks_json(request):
     """
-    Returns all tasks as a JSON response.
+    Returns all tasks as a JSON response for the logged-in user.
     """
-    tasks = Task.objects.all().order_by('due_date')  # You can adjust the ordering if desired
+    tasks = Task.objects.filter(user=request.user).order_by('due_date')
     tasks_list = [
         {
             'id': task.id,
@@ -283,13 +314,14 @@ def all_tasks_json(request):
     return JsonResponse(tasks_list, safe=False)
 
 @csrf_exempt
+@login_required
 def update_task_status(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
             task_id = data.get("task_id")
             completed = data.get("completed")
-            task = Task.objects.get(id=task_id)
+            task = Task.objects.get(id=task_id, user=request.user)
             task.completed = completed
             task.save()
             return JsonResponse({"success": True, "task_id": task_id, "completed": task.completed})
@@ -299,7 +331,7 @@ def update_task_status(request):
             return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Invalid request method"}, status=400)
 
-
+@login_required
 def daily_wellness_json(request):
     """Return the logged-in user's DailyWellness for today as JSON."""
     today = date.today()
@@ -321,6 +353,7 @@ def daily_wellness_json(request):
 
     return JsonResponse(data)
 
+@login_required
 def increment_wellness(request):
     from django.http import JsonResponse
     from datetime import date
@@ -350,6 +383,7 @@ def increment_wellness(request):
         'healthy_meals': wellness.healthy_meals
     })
 
+@login_required
 def monthly_productivity_json(request):
     user = request.user
     today = date.today()
@@ -360,32 +394,30 @@ def monthly_productivity_json(request):
         completed_tasks = Task.objects.filter(
             completed=True,
             due_date__date=target_date,
-            # Uncomment for user-specific tasks:
-            # user=user
+            user=user  # Now filtering by logged-in user
         ).count()
         data.append({
-            "date": target_date.strftime("%b %d"),  # e.g., "Mar 18"
+            "date": target_date.strftime("%b %d"),
             "count": completed_tasks
         })
 
     return JsonResponse(data, safe=False)
 
+@login_required
 def monthly_wellness_json(request):
-    # Get all DailyWellness records (aggregated across all users)
-    qs = DailyWellness.objects.all()
+    # Only get DailyWellness records for the logged-in user
+    qs = DailyWellness.objects.filter(user=request.user)
     
-    # Group by month (extracted from the date field) and calculate averages
     monthly_data = qs.values('date__month').annotate(
         avg_water=Avg('water_intake'),
         avg_breaks=Avg('movement_breaks'),
         avg_meals=Avg('healthy_meals')
     ).order_by('date__month')
 
-    # Prepare the data with hardcoded target values
     data = []
     for entry in monthly_data:
         data.append({
-            'month': entry['date__month'],  # Month as an integer (e.g., 3 for March)
+            'month': entry['date__month'],
             'avg_water': float(entry['avg_water']) if entry['avg_water'] is not None else 0,
             'avg_breaks': float(entry['avg_breaks']) if entry['avg_breaks'] is not None else 0,
             'avg_meals': float(entry['avg_meals']) if entry['avg_meals'] is not None else 0,
@@ -396,12 +428,15 @@ def monthly_wellness_json(request):
 
     return JsonResponse(data, safe=False)
 
+@login_required
 def analytics_view(request):
     return render(request, 'analytics.html')
 
+@login_required
 def tasks_view(request):
     return render(request, 'tasks.html')
 
+@login_required
 def calendar_view(request):
     return render(request, 'calendar.html')
 
@@ -413,8 +448,23 @@ def register(request):
             print("User created:", user.username)
             return redirect('login')
         else:
-            # Debug: print out form errors to the console
             print("Registration form errors:", form.errors)
     else:
         form = UserCreationForm()
     return render(request, 'register.html', {'form': form})
+
+@login_required
+def create_mood_entry(request):
+    if request.method == 'POST':
+        mood_rating = request.POST.get('mood_rating')
+        note = request.POST.get('note', '')
+        # Create the MoodEntry record for the logged-in user
+        MoodEntry.objects.create(
+            user=request.user,
+            mood_rating=mood_rating,
+            note=note
+        )
+        return redirect('dashboard')  # Adjust as needed
+    return render(request, 'mood_tracker.html')
+
+
