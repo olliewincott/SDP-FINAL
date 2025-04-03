@@ -1,6 +1,7 @@
 from django.urls import path, include
 from . import views
-from .views import db_test, add_event, delete_event  # Correct import with proper spacing
+from .views import db_test, add_event, delete_event, register  # Correct import with proper spacing
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('', views.index, name='index'),  # Home page
@@ -23,5 +24,8 @@ urlpatterns = [
     path('tasks/', views.tasks_view, name='tasks'),
     path('task/update/', views.update_task_status, name='update_task_status'),
     path('wellness/monthly-json/', views.monthly_wellness_json, name='monthly_wellness_json'),
+    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
+    path('register/', register, name='register'),
 
 ]

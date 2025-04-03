@@ -125,3 +125,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Load environment variables using dotenv (already done above)
 # Confirm that the OpenAI API key is loaded
 OPENAI_API_KEY = env('OPENAI_API_KEY')
+
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/login/'
+

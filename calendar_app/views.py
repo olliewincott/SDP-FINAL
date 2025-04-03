@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
@@ -11,6 +11,7 @@ import re
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.db.models import Avg
+from django.contrib.auth.forms import UserCreationForm
 
 # Set the OpenAI API key from settings (loaded from your .env file)
 openai.api_key = settings.OPENAI_API_KEY
@@ -404,3 +405,16 @@ def tasks_view(request):
 def calendar_view(request):
     return render(request, 'calendar.html')
 
+def register(request):
+    if request.method == "POST":
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            print("User created:", user.username)
+            return redirect('login')
+        else:
+            # Debug: print out form errors to the console
+            print("Registration form errors:", form.errors)
+    else:
+        form = UserCreationForm()
+    return render(request, 'register.html', {'form': form})

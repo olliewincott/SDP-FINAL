@@ -18,8 +18,9 @@
        
             <!-- ✅ Dashboard Button (NEW) -->
             <a href="{% url 'dashboard' %}" class="btn btn-warning btn-lg mt-3">Go to Dashboard</a>
-
-
+            
+            <!-- ✅ Login Button (Added) -->
+            <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg mt-3">Login</a>
         </div>
     </section>
     
@@ -171,6 +172,25 @@
 
         .btn-secondary:hover {
             background-color: #48484a !important;
+        }
+
+        .btn-warning {
+            background-color: #ffcc00 !important;
+            border: none;
+        }
+
+        .btn-warning:hover {
+            background-color: #e6b800 !important;
+        }
+
+        .btn-outline-light {
+            color: #f8f9fa;
+            border-color: #f8f9fa;
+        }
+
+        .btn-outline-light:hover {
+            background-color: #f8f9fa;
+            color: #1c1c1e;
         }
     </style>
 {% endblock %}
