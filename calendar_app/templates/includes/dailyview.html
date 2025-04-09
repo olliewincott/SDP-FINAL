@@ -1,110 +1,194 @@
-{% load static %}
-
 <!-- Scrollable Daily Calendar Container -->
 <div id="daily-calendar-container">
-    <div id="dashboard-calendar"></div>
+  <div id="dashboard-calendar"></div>
 </div>
 
 <!-- FullCalendar Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/bootstrap@6.1.8/index.global.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light-border.css" />
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/tippy.js@6"></script>
 
 <style>
-    /* Calendar container */
-    #daily-calendar-container {
-        width: 100%;
-        height: 500px;
-        overflow-y: auto;
-        background-color: #2c2f36;
-        padding: 10px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 0 5px rgba(255, 255, 255, 0.05);
-    }
-  
-    /* Scrollable content area */
-    .fc-timegrid-container {
-        max-height: 500px;
-        overflow-y: auto !important;
-        background-color: #2c2f36 !important;
-    }
-  
-    /* Remove headers and toolbar */
-    .fc-toolbar,
-    .fc-col-header-cell {
-        display: none !important;
-    }
-  
-    /* Time column and background */
-    .fc-timegrid-col-frame {
-        background-color: #2c2f36 !important;
-    }
-  
-    /* Subtle slot borders */
-    .fc-timegrid-slot {
-        border-top: 1px solid #3d4049 !important;
-    }
-  
-    /* Time label styling */
-    .fc-timegrid-slot-label {
-        color: #b0b3b8;
-        font-weight: 500;
-        font-size: 0.85em;
-    }
-  
-    /* Event block */
-    .fc-event {
-        background-color: rgba(0, 123, 255, 0.8); /* Bright blue */
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #fff;
-        font-size: 0.85em;
-        padding: 3px 6px;
-        border-radius: 6px;
-        transition: background-color 0.2s ease;
-    }
-  
-    /* Hover state */
-    .fc-event:hover {
-        background-color: rgba(0, 123, 255, 1);
-    }
-  
-    /* Optional: today's indicator line */
-    .fc-now-indicator {
-        background-color: #ff5c5c !important;
-    }
-  </style>
-  
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const now = new Date();
-  
-      // Format current time into HH:MM:SS for scrollTime (e.g., "14:30:00")
-      const pad = (n) => n.toString().padStart(2, '0');
-      const scrollTime = `${pad(now.getHours())}:${pad(now.getMinutes())}:00`;
-  
-      const calendarEl = document.getElementById('dashboard-calendar');
-  
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        themeSystem: 'bootstrap',
-        initialView: 'timeGridDay',
-        height: 500,
-        headerToolbar: false,
-        dayHeaders: false,
-        allDaySlot: false,
-        slotMinTime: '00:00:00',
-        slotMaxTime: '24:00:00',
-        scrollTime: scrollTime,  // 👈 This auto-scrolls to current time
-        nowIndicator: true,
-        slotDuration: '00:30:00',
-        slotLabelInterval: '01:00:00',
-        now: new Date(), // For accuracy in "now" indicator
-        events: "{% url 'events_json' %}",
-        eventContent: function (arg) {
-          return { html: `<span>${arg.event.title}</span>` };
+  #daily-calendar-container {
+    width: 100%;
+    height: 700px;
+    overflow-y: auto;
+    background-color: #2c2f36;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.05);
+  }
+
+  .fc-timegrid-container {
+    max-height: 700px;
+    overflow-y: auto !important;
+    background-color: #2c2f36 !important;
+  }
+
+  .fc-toolbar,
+  .fc-col-header-cell {
+    display: none !important;
+  }
+
+  .fc-timegrid-col-frame,
+  .fc-timegrid-slot {
+    background-color: #2c2f36 !important;
+    border-top: 1px solid #3d4049 !important;
+  }
+
+  .fc-timegrid-slot-label {
+    color: #b0b3b8;
+    font-weight: 500;
+    font-size: 0.85em;
+  }
+
+  .fc-event {
+    background-color: rgba(0, 123, 255, 0.8);
+    color: #fff;
+    font-size: 0.85em;
+    padding: 3px 6px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+    border: none !important;     /* 💥 ensure no border */
+    outline: none !important;    /* 💥 prevent focus outlines */
+    box-shadow: none !important; /* 💥 override any other glow */
+  }
+
+  .fc-event:hover {
+    background-color: rgba(0, 123, 255, 1);
+    border: 1px solid rgba(255, 255, 255, 0.5); /* ✅ Border only on hover */
+    box-shadow: 0 2px 6px rgba(0, 123, 255, 0.4);
+  }
+
+  .fc-now-indicator {
+    background-color: #ff5c5c !important;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const calendarEl = document.getElementById('dashboard-calendar');
+    const modalEl = document.getElementById('addEventModal');
+    const eventModal = new bootstrap.Modal(modalEl);
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      themeSystem: 'bootstrap',
+      initialView: 'timeGridDay',
+      height: 700,
+      editable: true,
+      eventResizableFromStart: true,
+      headerToolbar: false,
+      dayHeaders: false,
+      allDaySlot: false,
+      slotMinTime: '00:00:00',
+      slotMaxTime: '24:00:00',
+      nowIndicator: true,
+      slotDuration: '00:30:00',
+      slotLabelInterval: '01:00:00',
+      now: new Date(),
+
+      scrollTime: (() => {
+        const now = new Date();
+        return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+      })(),
+
+      events: "{% url 'events_json' %}",
+
+      eventContent: function (arg) {
+        return { html: `<span>${arg.event.title}</span>` };
+      },
+
+      eventDidMount: function (info) {
+        if (info.event.extendedProps.description) {
+          tippy(info.el, {
+            content: `<strong>${info.event.title}</strong><br>${info.event.extendedProps.description}`,
+            allowHTML: true,
+            theme: 'light-border',
+            placement: 'top',
+            animation: 'shift-away',
+            delay: [100, 50],
+          });
         }
-      });
-  
-      calendar.render();
+      },
+
+      eventDrop: updateEvent,
+      eventResize: updateEvent,
+
+      dateClick: function (info) {
+        const start = new Date(info.date);
+        const end = new Date(start.getTime() + 30 * 60000);
+
+        document.getElementById('event-start').value = start.toISOString().slice(0, 16);
+        document.getElementById('event-end').value = end.toISOString().slice(0, 16);
+        document.getElementById('event-title').value = '';
+        document.getElementById('event-description').value = '';
+
+        setTimeout(() => eventModal.show(), 50);
+      }
     });
-  </script>
-  
+
+    calendar.render();
+
+    function updateEvent(info) {
+      const eventId = info.event.id;
+      const newStart = info.event.start.toISOString();
+      const newEnd = info.event.end ? info.event.end.toISOString() : null;
+
+      fetch("{% url 'update_event_time' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify({ id: eventId, start: newStart, end: newEnd })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) {
+          alert("Failed to update event.");
+          info.revert();
+        }
+      })
+      .catch(() => {
+        alert("Server error.");
+        info.revert();
+      });
+    }
+
+    document.getElementById('addEventForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+
+      fetch("{% url 'add_event' %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        body: formData
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          eventModal.hide();
+          calendar.refetchEvents();
+        } else {
+          alert(data.error || 'Could not create event.');
+        }
+      })
+      .catch(() => alert("Server error"));
+    });
+
+    function getCSRFToken() {
+      const name = 'csrftoken';
+      const cookies = document.cookie.split(';');
+      for (let c of cookies) {
+        if (c.trim().startsWith(name + '=')) {
+          return c.trim().substring(name.length + 1);
+        }
+      }
+      return '';
+    }
+  });
+</script>

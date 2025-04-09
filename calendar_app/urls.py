@@ -28,5 +28,8 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     path('register/', register, name='register'),
     path('mood/create/', views.create_mood_entry, name='create_mood_entry'),
+    path('ai/', views.ai_assistant_view, name='ai_assistant'),
+    path('wellbeing/', views.wellbeing_view, name='wellbeing'),
+    path('update-event-time/', views.update_event_time, name='update_event_time'),
 
 ]

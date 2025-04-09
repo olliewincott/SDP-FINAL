@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 import json
 import openai
 from django.conf import settings
-from .models import CalendarEvent, Reminder, Category, EventCategory, Task, DailyWellness, MoodEntry
+from .models import CalendarEvent, Reminder, Category, EventCategory, Task, DailyWellness, MoodEntry, Category
 from datetime import datetime, timedelta, date
 import re
 from django.contrib.auth.decorators import login_required
@@ -44,6 +44,7 @@ def events_json(request):
     event_list = []
     for event in events:
         event_list.append({
+            "id": event.id,
             "title": event.title,
             "start": event.start_time.isoformat(),
             "end": event.end_time.isoformat(),
@@ -75,8 +76,12 @@ def dashboard(request):
         reminder_time__range=(start_of_day, end_of_day)
     ).order_by('reminder_time')
 
+    # ✅ Query all categories to use in dropdown
+    categories = Category.objects.all()
+
     return render(request, 'dashboard.html', {
-        'reminders': reminders
+        'reminders': reminders,
+        'categories': categories  # 👈 Include in context
     })
 
 @login_required
@@ -467,4 +472,32 @@ def create_mood_entry(request):
         return redirect('dashboard')  # Adjust as needed
     return render(request, 'mood_tracker.html')
 
+@login_required
+def ai_assistant_view(request):
+    return render(request, 'ai_assistant.html')
 
+@login_required
+def wellbeing_view(request):
+    # Optionally fetch any data you'd like to display
+    reminders = Reminder.objects.filter(user=request.user) if request.user.is_authenticated else []
+    
+    return render(request, 'wellbeing.html', {
+        'reminders': reminders,
+    })
+
+@login_required
+@csrf_exempt
+def update_event_time(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            event = CalendarEvent.objects.get(id=data['id'])
+            event.start_time = data['start']
+            if data.get('end'):
+                event.end_time = data['end']
+            event.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            print("Update error:", e)
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False})

@@ -1,0 +1,83 @@
+{% load static %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+<style>
+  nav.navbar {
+    display: none !important;
+  }
+
+  .wellness-widget {
+    background-color: #2c2c2e;
+    border-radius: 10px;
+    padding: 20px;
+    color: #f1f1f1;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+
+  .wellness-widget:hover {
+    background-color: #3a3a3c;
+  }
+
+  .mood-tracker .emoji {
+    font-size: 28px;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .mood-tracker .emoji:hover {
+    transform: scale(1.2);
+  }
+
+  .mood-tracker label {
+    margin: 0 15px;
+    display: inline-block;
+    color: white;
+  }
+</style>
+{% endblock head %}
+
+{% block content %}
+<div class="container-fluid main-dashboard-bg text-light" style="min-height: 100vh;">
+  <div class="row">
+    {% include 'includes/sidebar.html' %}
+    <main class="col-12 col-md-9 col-lg-10 py-3 dashboard-content">
+      {% include 'includes/topbar.html' with page_title="Wellbeing" %}
+
+      <!-- Wellness Stats Section -->
+      <div class="row">
+        <div class="col-12 mb-3">
+          <div class="widget">
+            {% include 'includes/wellness_stats.html' %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Mood Tracker Section -->
+      <div class="row">
+        <div class="col-12 mb-3">
+          <div class="widget">
+            {% include 'includes/mood_tracker.html' %}
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Global URLS -->
+<script>
+  window.wellnessJsonUrl = "{% url 'daily_wellness_json' %}";
+  window.incrementWellnessUrl = "{% url 'increment_wellness' %}";
+</script>
+
+{% include 'includes/scripts.html' %}
+{% block page_scripts %}
+<script src="{% static 'js/wellbeing.js' %}"></script>
+{% endblock %}
+{% endblock %}

@@ -2,26 +2,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  {% block head %}
   <meta charset="UTF-8">
   <title>Dashboard - PLN AI</title>
 
-  <!-- Bootstrap CSS -->
-  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Font Awesome -->
+  <!-- External CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600&display=swap" rel="stylesheet">
-  <!-- BotUI CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui-theme-default.css">
-  <!-- Custom Dashboard CSS -->
   <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-</head>
 
+  <style>
+    nav.navbar {
+      display: none !important;
+    }
+    canvas {
+      max-height: 400px;
+    }
+  </style>
+  {% endblock head %}
+</head>
 <body>
   <div class="container-fluid main-dashboard-bg text-light" style="min-height: 100vh;">
     <div class="row">
       {% include 'includes/sidebar.html' %}
+
       <main class="col-12 col-md-9 col-lg-10 py-3 dashboard-content">
         <!-- Top Bar -->
         <div class="row align-items-center mb-3 rounded p-3 top-bar">
@@ -32,39 +36,31 @@
 
         <!-- Two-Column Layout -->
         <div class="row d-flex align-items-stretch">
-          <!-- Left Column: Calendar + Tasks -->
+          <!-- Left Column -->
           <div class="col-lg-6 mb-3 d-flex flex-column">
-            <!-- Calendar -->
-            <div class="widget calendar mb-3" style="height: auto;">
-              <h5>Today's Agenda</h5>
-              {% include 'includes/dailyview.html' with daily_view=True %}
-            </div>
-            <!-- Tasks -->
-            <div class="widget tasks mb-3" style="height: auto;">
-              {% include 'includes/daily_tasks.html' %}
+            <div class="mb-3">
+              <h5 class="widget-heading"><i class="fas fa-calendar-day"></i> Today's Agenda</h5>
+              <div class="widget calendar">
+                {% include 'includes/dailyview.html' with daily_view=True %}
+              </div>
             </div>
           </div>
 
-          <!-- Right Column: Reminders + Wellness + Mood -->
-          <div class="col-lg-6 mb-3">
-            <div class="row">
-              <!-- Reminders -->
-              <div class="col-12 mb-3">
-                <div class="widget reminders">
-                  {% include 'includes/reminders.html' with reminders=reminders %}
-                </div>
+          <!-- Right Column -->
+          <div class="col-lg-6 mb-3 d-flex flex-column">
+            <!-- Reminders -->
+            <div class="mb-3">
+              <h5 class="widget-heading"><i class="fas fa-bell"></i> Reminders</h5>
+              <div class="widget reminders">
+                {% include 'includes/reminders.html' with reminders=reminders %}
               </div>
-              <!-- Wellness Stats -->
-              <div class="col-12 mb-3">
-                <div class="widget wellness">
-                  {% include 'includes/wellness_stats.html' %}
-                </div>
-              </div>
-              <!-- Mood Tracker -->
-              <div class="col-12 mb-3">
-                <div class="widget mood-tracker">
-                  {% include 'includes/mood_tracker.html' %}
-                </div>
+            </div>
+
+            <!-- Tasks -->
+            <div>
+              <h5 class="widget-heading"><i class="fas fa-tasks"></i> Today’s Tasks</h5>
+              <div class="widget tasks">
+                {% include 'includes/daily_tasks.html' %}
               </div>
             </div>
           </div>
@@ -73,7 +69,58 @@
     </div>
   </div>
 
-  <!-- Global URLs -->
+  <!-- Global Modal -->
+  <div class="modal fade" id="addEventModal" tabindex="-1" aria-labelledby="addEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form id="addEventForm" class="modal-content text-dark">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addEventModalLabel">Add New Event</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <input type="hidden" name="user_id" value="{{ request.user.id }}">
+
+          <div class="mb-3">
+            <label for="event-title" class="form-label">Title</label>
+            <input type="text" class="form-control" id="event-title" name="title" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="event-description" class="form-label">Description</label>
+            <textarea class="form-control" id="event-description" name="description"></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label for="event-category" class="form-label">Category</label>
+            <select class="form-control" id="event-category" name="category_id" required>
+              <option value="" disabled selected>Select a category</option>
+              {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="event-start" class="form-label">Start Time</label>
+            <input type="datetime-local" class="form-control" id="event-start" name="start_time" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="event-end" class="form-label">End Time</label>
+            <input type="datetime-local" class="form-control" id="event-end" name="end_time" required>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Create Event</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Global JS Vars -->
   <script>
     window.tasksJsonUrl = "{% url 'all_tasks_json' %}";
     window.updateTaskStatusUrl = "{% url 'update_task_status' %}";
@@ -83,112 +130,177 @@
     window.eventsJsonUrl = "{% url 'events_json' %}";
   </script>
 
-  <!-- Floating Chatbot Button -->
-  <button id="openChatbotBtn" class="chat-float-btn">
-    <i class="fas fa-comments"></i>
-  </button>
-
-  <!-- Chatbot Widget -->
-  <div id="chatbot-widget">
-    <div class="chatbot-header d-flex align-items-center justify-content-between">
-      <div class="d-flex align-items-center">
-        <img src="{% static 'images/chatbot-icon.png' %}" alt="Bot" class="bot-avatar mr-2">
-        <span>Calendar Assistant</span>
-      </div>
-      <button id="closeChatbotBtn" class="close-btn">&times;</button>
-    </div>
-    <div id="botui-app" class="chat-body">
-      <bot-ui></bot-ui>
-    </div>
-    <div class="chat-input px-3 py-2">
-      <input type="text" id="userInput" class="form-control" placeholder="Type your message..." />
-      <button id="sendBtn" class="btn btn-primary btn-block mt-2">Send</button>
-    </div>
-  </div>
-
-  <!-- JS Includes -->
+  <!-- JS Scripts -->
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/botui/build/botui.min.js"></script>
-
-  <!-- Chatbot Behavior -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const botui = new BotUI('botui-app');
-      const inputField = document.getElementById('userInput');
-      const sendBtn = document.getElementById('sendBtn');
-      const openBtn = document.getElementById('openChatbotBtn');
-      const closeBtn = document.getElementById('closeChatbotBtn');
-      const chatbotWidget = document.getElementById('chatbot-widget');
-      let conversationHistory = [];
-
-      botui.message.add({ content: 'Hello! How can I assist you with your schedule today?' });
-
-      sendBtn.addEventListener('click', sendMessage);
-      inputField.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          sendMessage();
-        }
-      });
-
-      function sendMessage() {
-        const userMsg = inputField.value.trim();
-        if (!userMsg) return;
-        inputField.value = '';
-        conversationHistory.push({ role: 'user', content: userMsg });
-        botui.message.add({ content: userMsg, human: true });
-        botui.message.add({ loading: true }).then(function (index) {
-          fetch('/chatbot/response/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': getCSRFToken()
-            },
-            body: JSON.stringify({ message: userMsg, history: conversationHistory })
-          })
-          .then(r => r.json())
-          .then(data => {
-            botui.message.remove(index);
-            const botReply = data.response || 'Sorry, I didn’t understand.';
-            conversationHistory.push({ role: 'assistant', content: botReply });
-            botui.message.add({ content: botReply });
-          })
-          .catch(error => {
-            botui.message.remove(index);
-            botui.message.add({ content: 'Connection error. Please try again.' });
-          });
-        });
-      }
-
-      function getCSRFToken() {
-        const name = 'csrftoken';
-        const cookies = document.cookie.split(';');
-        for (let c of cookies) {
-          if (c.trim().startsWith(name + '=')) {
-            return c.trim().substring(name.length + 1);
-          }
-        }
-        return '';
-      }
-
-      closeBtn.addEventListener('click', () => {
-        chatbotWidget.style.display = 'none';
-        openBtn.style.display = 'block';
-      });
-
-      openBtn.addEventListener('click', () => {
-        chatbotWidget.style.display = 'flex';
-        openBtn.style.display = 'none';
-      });
-    });
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   {% include 'includes/scripts.html' %}
   {% block page_scripts %}
-    <script src="{% static 'js/dashboard.js' %}"></script>
-  {% endblock %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const calendarEl = document.getElementById('dashboard-calendar');
+    const modalEl = document.getElementById('addEventModal');
+    const eventModal = new bootstrap.Modal(modalEl);
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-danger me-auto';
+    deleteBtn.textContent = 'Delete';
+    let activeEventId = null;
+
+    const modalFooter = modalEl.querySelector('.modal-footer');
+    if (!modalFooter.querySelector('.btn-danger')) {
+      modalFooter.insertBefore(deleteBtn, modalFooter.firstChild);
+      deleteBtn.style.display = 'none';
+    }
+
+    deleteBtn.onclick = () => {
+      if (activeEventId && confirm('Are you sure you want to delete this event?')) {
+        fetch(`/delete_event/${activeEventId}/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': getCSRFToken() }
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            eventModal.hide();
+            window.dashboardCalendar.refetchEvents();
+          } else {
+            alert(data.error || 'Failed to delete.');
+          }
+        })
+        .catch(() => alert('Server error during delete.'));
+      }
+    };
+
+    if (calendarEl) {
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        themeSystem: 'bootstrap',
+        initialView: 'timeGridDay',
+        height: 700,
+        editable: true,
+        eventResizableFromStart: true,
+        headerToolbar: false,
+        dayHeaders: false,
+        allDaySlot: false,
+        nowIndicator: true,
+        slotDuration: '00:30:00',
+        slotMinTime: '00:00:00',
+        slotMaxTime: '24:00:00',
+        scrollTime: (() => {
+          const now = new Date();
+          return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+        })(),
+        now: new Date(),
+        events: window.eventsJsonUrl,
+
+        eventContent: function(arg) {
+          return {
+            domNodes: [document.createTextNode(arg.event.title)]
+          };
+        },
+
+        eventClick: function (info) {
+          const event = info.event;
+          activeEventId = event.id;
+
+          document.getElementById('event-title').value = event.title;
+          document.getElementById('event-description').value = event.extendedProps.description || '';
+          document.getElementById('event-start').value = formatDateTimeLocal(event.start);
+          document.getElementById('event-end').value = event.end ? formatDateTimeLocal(event.end) : '';
+          document.getElementById('event-category').value = event.extendedProps.category_id || '';
+
+          deleteBtn.style.display = 'inline-block';
+          eventModal.show();
+        },
+
+        dateClick: function (info) {
+          activeEventId = null;
+          document.getElementById('addEventForm').reset();
+          document.getElementById('event-start').value = formatDateTimeLocal(info.date);
+          document.getElementById('event-end').value = formatDateTimeLocal(new Date(info.date.getTime() + 30 * 60000));
+          deleteBtn.style.display = 'none';
+          eventModal.show();
+        },
+
+        eventDrop: handleEventUpdate,
+        eventResize: handleEventUpdate
+      });
+
+      window.dashboardCalendar = calendar;
+      calendar.render();
+    }
+
+    function handleEventUpdate(info) {
+      const eventId = info.event.id;
+      const newStart = info.event.start.toISOString();
+      const newEnd = info.event.end ? info.event.end.toISOString() : null;
+
+      fetch("{% url 'update_event_time' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify({ id: eventId, start: newStart, end: newEnd })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) {
+          alert("Failed to update event.");
+          info.revert();
+        }
+      })
+      .catch(() => {
+        alert("Server error.");
+        info.revert();
+      });
+    }
+
+    function formatDateTimeLocal(date) {
+      return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0,16);
+    }
+
+    function getCSRFToken() {
+      const name = 'csrftoken';
+      const cookies = document.cookie.split(';');
+      for (let c of cookies) {
+        if (c.trim().startsWith(name + '=')) {
+          return c.trim().substring(name.length + 1);
+        }
+      }
+      return '';
+    }
+
+    document.getElementById('addEventForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+
+      if (activeEventId) {
+        formData.append('id', activeEventId);
+      }
+
+      fetch("{% url 'add_event' %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        body: formData
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          eventModal.hide();
+          window.dashboardCalendar.refetchEvents();
+        } else {
+          alert(data.error || 'Could not create/update event.');
+        }
+      })
+      .catch(() => alert("Server error"));
+    });
+  });
+</script>
+{% endblock %}
+
+  
+
 </body>
 </html>

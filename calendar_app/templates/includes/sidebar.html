@@ -1,15 +1,29 @@
-<aside class="col-12 col-md-3 col-lg-2 p-3 sidebar" id="sidebar" style="border: 1px solid lightgrey;">
+<aside class="col-12 col-md-3 col-lg-2 p-3 sidebar" id="sidebar" style="border: 1px solid lightgrey; font-size: 14px;">
   <div class="profile-section text-center mb-4">
     <i class="fas fa-user-circle" style="font-size: 48px; margin: 10px 0;"></i>
     <h4>{{ user.get_full_name|default:user.username }}</h4>
   </div>
+
   <nav class="sidebar-nav">
     <ul class="list-unstyled">
-      <li><a href="{% url 'dashboard' %}" class="text-light"><i class="fas fa-home"></i> Dashboard</a></li>
-      <li><a href="{% url 'tasks' %}" class="text-light"><i class="fas fa-tasks"></i> Tasks</a></li>
-      <li><a href="{% url 'analytics' %}" class="text-light"><i class="fas fa-chart-line"></i> Analytics</a></li>
-      <li><a href="{% url 'calendar' %}" class="text-light"><i class="fas fa-calendar-alt"></i> Calendar</a></li>
-      <li><a href="#" class="text-light"><i class="fas fa-cog"></i> Settings</a></li>
+      <!-- MAIN -->
+      <li class="mb-2 text-uppercase small font-weight-bold text-light">Main</li>
+      <li><a href="{% url 'dashboard' %}" class="text-light d-flex align-items-center"><i class="fas fa-home mr-2"></i> Dashboard</a></li>
+      <li><a href="{% url 'calendar' %}" class="text-light d-flex align-items-center"><i class="fas fa-calendar-alt mr-2"></i> Calendar</a></li>
+
+      <!-- PERSONAL -->
+      <li class="mt-4 mb-2 text-uppercase small font-weight-bold text-light">Personal</li>
+      <li><a href="{% url 'wellbeing' %}" class="text-light d-flex align-items-center"><i class="fas fa-heartbeat mr-2"></i> Wellbeing</a></li>
+      <li><a href="{% url 'ai_assistant' %}" class="text-light d-flex align-items-center"><i class="fas fa-robot mr-2"></i> AI Assistant</a></li>
+
+      <!-- PRODUCTIVITY -->
+      <li class="mt-4 mb-2 text-uppercase small font-weight-bold text-light">Productivity</li>
+      <li><a href="{% url 'tasks' %}" class="text-light d-flex align-items-center"><i class="fas fa-tasks mr-2"></i> Tasks</a></li>
+      <li><a href="{% url 'analytics' %}" class="text-light d-flex align-items-center"><i class="fas fa-chart-line mr-2"></i> Analytics</a></li>
+
+      <!-- SETTINGS -->
+      <li class="mt-4 mb-2 text-uppercase small font-weight-bold text-light">System</li>
+      <li><a href="#" class="text-light d-flex align-items-center"><i class="fas fa-cog mr-2"></i> Settings</a></li>
     </ul>
   </nav>
 </aside>
