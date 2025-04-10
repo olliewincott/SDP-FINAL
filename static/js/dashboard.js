@@ -1,144 +1,153 @@
 console.log("Dashboard JS loaded!");
 
-// DEBUGGING: Detect any usage of eval() or new Function()
-(function() {
-  const originalEval = window.eval;
-  window.eval = function() {
-    console.warn("⚠️ eval() was called with arguments:", arguments);
-    debugger;
-    return originalEval.apply(this, arguments);
-  };
-
-  const originalFunction = Function;
-  window.Function = function() {
-    console.warn("⚠️ new Function() was called with arguments:", arguments);
-    debugger;
-    return originalFunction.apply(this, arguments);
-  };
-})();
-
 document.addEventListener('DOMContentLoaded', function () {
-  console.log("Tasks URL:", window.tasksJsonUrl);
-  console.log("Wellness URL:", window.wellnessJsonUrl);
-  console.log("Increment Wellness URL:", window.incrementWellnessUrl);
-  console.log("Update Task URL:", window.updateTaskStatusUrl);
+  const calendarEl = document.getElementById('dashboard-calendar');
+  const modalEl = document.getElementById('addEventModal');
+  const eventModal = new bootstrap.Modal(modalEl);
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'btn btn-danger me-auto';
+  deleteBtn.textContent = 'Delete';
+  let activeEventId = null;
 
-  // ---- Load Today's Tasks (Click-to-complete) ----
-  fetch(window.tasksJsonUrl)
-    .then(r => r.json())
-    .then(tasks => {
-      console.log("Fetched tasks:", tasks);
-      const todayStr = new Date().toLocaleDateString('en-CA');
-      console.log("Today (local):", todayStr);
-
-      const taskList = document.getElementById("task-list");
-      if (!taskList) return;
-
-      const todaysTasks = tasks.filter(t => {
-        const dueDateStr = new Date(t.due_date).toLocaleDateString('en-CA');
-        return dueDateStr === todayStr;
-      });
-
-      taskList.innerHTML = "";
-      if (todaysTasks.length === 0) {
-        taskList.innerHTML = "<li>No tasks for today.</li>";
-      } else {
-        todaysTasks.forEach(t => {
-          const li = document.createElement("li");
-          li.textContent = `${t.title} - Due: ${new Date(t.due_date).toLocaleDateString()}`;
-          li.style.cursor = "pointer";
-
-          if (t.completed) {
-            li.classList.add("completed-task");
-          }
-
-          li.addEventListener('click', function () {
-            const newStatus = !t.completed;
-            updateTaskStatus(t.id, newStatus, function(updatedTask) {
-              t.completed = updatedTask.completed;
-              if (t.completed) {
-                li.classList.add("completed-task");
-              } else {
-                li.classList.remove("completed-task");
-              }
-            });
-          });
-
-          taskList.appendChild(li);
-        });
-      }
-    })
-    .catch(err => {
-      console.error("Error fetching tasks:", err);
-      const taskList = document.getElementById("task-list");
-      if (taskList) {
-        taskList.innerHTML = "<li>Error loading tasks.</li>";
-      }
-    });
-
-  // ---- Load Wellness Stats ----
-  fetch(window.wellnessJsonUrl)
-    .then(r => r.json())
-    .then(data => {
-      console.log("Fetched wellness data:", data);
-      updateWellnessProgress(data);
-    })
-    .catch(err => {
-      console.error("Error fetching wellness data:", err);
-    });
-
-  // ---- Clickable Wellness Widgets ----
-  document.querySelectorAll('.wellness-widget').forEach(widget => {
-    widget.addEventListener('click', () => {
-      const statType = widget.dataset.type;
-      fetch(window.incrementWellnessUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-CSRFToken': getCSRFToken()
-        },
-        body: `type=${statType}`
-      })
-        .then(r => r.json())
-        .then(data => {
-          console.log("Wellness updated:", data);
-          updateWellnessProgress(data);
-        })
-        .catch(err => console.error("Error updating wellness:", err));
-    });
-  });
-
-  // ---- Helper Functions ----
-  function updateWellnessProgress(data) {
-    const waterPercent = Math.min((data.water_intake / 8) * 100, 100);
-    const breaksPercent = Math.min((data.movement_breaks / 3) * 100, 100);
-    const mealsPercent = Math.min((data.healthy_meals / 3) * 100, 100);
-
-    document.getElementById("water-progress").textContent = `${Math.round(waterPercent)}%`;
-    document.getElementById("breaks-progress").textContent = `${Math.round(breaksPercent)}%`;
-    document.getElementById("meals-progress").textContent = `${Math.round(mealsPercent)}%`;
+  const modalFooter = modalEl.querySelector('.modal-footer');
+  if (!modalFooter.querySelector('.btn-danger')) {
+    modalFooter.insertBefore(deleteBtn, modalFooter.firstChild);
+    deleteBtn.style.display = 'none';
   }
 
-  function updateTaskStatus(taskId, completed, callback) {
-    fetch(window.updateTaskStatusUrl, {
+  deleteBtn.onclick = () => {
+    if (activeEventId && confirm('Are you sure you want to delete this event?')) {
+      fetch(`/delete_event/${activeEventId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          eventModal.hide();
+          window.dashboardCalendar.refetchEvents();
+        } else {
+          alert(data.error || 'Failed to delete.');
+        }
+      })
+      .catch(() => alert('Server error during delete.'));
+    }
+  };
+
+  if (calendarEl) {
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      themeSystem: 'bootstrap',
+      initialView: 'timeGridDay',
+      height: 850,
+      editable: true,
+      eventResizableFromStart: true,
+      headerToolbar: {
+        left: 'prev today',
+        center: 'title',
+        right: 'next'
+      },
+      dayHeaders: false,
+      allDaySlot: false,
+      nowIndicator: true,
+      slotDuration: '00:30:00',
+      slotMinTime: '00:00:00',
+      slotMaxTime: '24:00:00',
+      scrollTime: (() => {
+        const now = new Date();
+        return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+      })(),
+      now: new Date(),
+      events: window.eventsJsonUrl,
+
+      eventContent: function(arg) {
+        return {
+          domNodes: [document.createTextNode(arg.event.title)]
+        };
+      },
+
+      eventClick: function (info) {
+        const event = info.event;
+        activeEventId = event.id;
+
+        document.getElementById('event-title').value = event.title;
+        document.getElementById('event-description').value = event.extendedProps.description || '';
+        document.getElementById('event-start').value = formatDateTimeLocal(event.start);
+        document.getElementById('event-end').value = event.end ? formatDateTimeLocal(event.end) : '';
+        document.getElementById('event-category').value = event.extendedProps.category_id || '';
+
+        deleteBtn.style.display = 'inline-block';
+        eventModal.show();
+      },
+
+      dateClick: function (info) {
+        activeEventId = null;
+        document.getElementById('addEventForm').reset();
+        document.getElementById('event-start').value = formatDateTimeLocal(info.date);
+        document.getElementById('event-end').value = formatDateTimeLocal(new Date(info.date.getTime() + 30 * 60000));
+        deleteBtn.style.display = 'none';
+        eventModal.show();
+      },
+
+      eventDrop: handleEventUpdate,
+      eventResize: handleEventUpdate
+    });
+
+    window.dashboardCalendar = calendar;
+    calendar.render();
+  }
+
+  document.getElementById('addEventForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    if (activeEventId) {
+      formData.append('id', activeEventId);
+    }
+
+    fetch("{% url 'add_event' %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCSRFToken() },
+      body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        eventModal.hide();
+        window.dashboardCalendar.refetchEvents();
+      } else {
+        alert(data.error || 'Could not create/update event.');
+      }
+    })
+    .catch(() => alert("Server error"));
+  });
+
+  function handleEventUpdate(info) {
+    const eventId = info.event.id;
+    const newStart = info.event.start.toISOString();
+    const newEnd = info.event.end ? info.event.end.toISOString() : null;
+
+    fetch("{% url 'update_event_time' %}", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRFToken': getCSRFToken()
       },
-      body: JSON.stringify({
-        task_id: taskId,
-        completed: completed
-      })
+      body: JSON.stringify({ id: eventId, start: newStart, end: newEnd })
     })
-    .then(response => response.json())
+    .then(res => res.json())
     .then(data => {
-      console.log("Task updated:", data);
-      callback(data);
+      if (!data.success) {
+        alert("Failed to update event.");
+        info.revert();
+      }
     })
-    .catch(error => {
-      console.error("Error updating task:", error);
+    .catch(() => {
+      alert("Server error.");
+      info.revert();
     });
+  }
+
+  function formatDateTimeLocal(date) {
+    return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0,16);
   }
 
   function getCSRFToken() {
@@ -151,33 +160,4 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     return '';
   }
-});
-
-// ---- Chatbot Modal Toggle Logic ----
-document.addEventListener('DOMContentLoaded', function() {
-  const chatButton = document.getElementById('chatbot-button');
-  const chatModal = document.getElementById('chatbot-modal');
-  const closeChat = document.getElementById('close-chatbot');
-
-  if (!chatButton || !chatModal || !closeChat) {
-    console.error("Chatbot elements not found in DOM.");
-    return;
-  }
-
-  chatButton.addEventListener('click', function() {
-    console.log("Chatbot button clicked.");
-    chatModal.style.display = 'block';
-  });
-
-  closeChat.addEventListener('click', function() {
-    console.log("Chatbot close button clicked.");
-    chatModal.style.display = 'none';
-  });
-
-  window.addEventListener('click', function(event) {
-    if (event.target === chatModal) {
-      console.log("Clicked outside chatbot content, hiding modal.");
-      chatModal.style.display = 'none';
-    }
-  });
 });

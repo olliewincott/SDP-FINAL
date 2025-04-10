@@ -1,20 +1,24 @@
 /* dashboard.css */
 
-/* Overall Page Styling */
+/* General Page Styling */
 body {
-  background-color: #1c1c1e;  /* Uniform dark background */
+  background-color: #1c1c1e;
   color: #d1d1d6;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif;
   margin: 0;
   padding: 0;
 }
 
-/* Ensure all container backgrounds match */
 .container,
 .main-dashboard-bg,
 .dashboard-content,
 .sidebar {
-  background-color: #2c2c2e; /* Use the same dark background */
+  background-color: #2c2c2e;
+}
+
+/* Hide navbar */
+nav.navbar {
+  display: none !important;
 }
 
 /* Top Bar */
@@ -26,7 +30,7 @@ body {
   margin-bottom: 15px;
 }
 
-/* Widget Styles */
+/* Widget Containers */
 .widget {
   background-color: #2c2c2e;
   border-radius: 10px;
@@ -42,141 +46,134 @@ body {
   box-shadow: 0 4px 8px rgba(0,0,0,0.4);
 }
 
-/* Calendar & Tasks Specific */
-.calendar-widget {
-  min-height: 550px;
-  display: flex;
-  flex-direction: column;
-}
+.calendar-widget,
 .tasks-widget {
   min-height: 550px;
   display: flex;
   flex-direction: column;
 }
 
-/* Wellness Stats Styling */
+/* Wellness Stats */
 .stat-widget {
   padding: 20px;
   background-color: #3a3a3c;
   border-radius: 8px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
 .stat-widget:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0,0,0,0.4);
 }
+
 .stat-widget h5 {
   margin: 0 0 5px 0;
   font-weight: 600;
 }
+
 .stat-value {
   font-size: 1.5rem;
   margin: 0;
 }
+
 .stat-goal {
   font-size: 0.8rem;
   margin: 0;
 }
+
 .stat-icon {
   font-size: 2rem;
   color: #007aff;
 }
 
-/* Sidebar */
-.sidebar {
-  font-size: 14px;
-  background-color: #2c2c2e;
-  padding: 20px;
-  min-height: 100vh;
+/* Sticky Calendar Toolbar */
+.fc-header-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #2c2f36;
+  border-bottom: 1px solid #3d4049;
+  border-radius: 10px 10px 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
-/* Chatbot Widget (if needed) */
-#chatbot-widget {
-  display: none;
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 360px;
-  height: 500px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  flex-direction: column;
-  overflow: hidden;
-  z-index: 1050;
+.fc-toolbar-title {
+  font-size: 1.1rem;
+  color: #f0f0f5;
+  font-weight: 500;
 }
 
-.chat-float-btn {
-  display: block;
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: linear-gradient(135deg, #6a11cb, #2575fc);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 60px;
-  height: 60px;
-  font-size: 24px;
-  z-index: 1049;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+.fc-button {
+  background-color: #3c3f44;
+  color: #f0f0f5;
+  border: 1px solid #4c4f56;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  text-transform: capitalize;
+  transition: background-color 0.2s ease;
+}
+
+.fc-button:hover {
+  background-color: #505359;
+}
+
+.fc-button:disabled {
+  background-color: #2f3033;
+  color: #888;
+  border-color: #444;
+  cursor: not-allowed;
+}
+
+.fc-button-primary {
+  box-shadow: none;
+}
+
+/* Calendar Grid */
+.fc-col-header-cell {
+  display: none !important;
+}
+
+.fc-timegrid-container {
+  max-height: 640px;
+  overflow-y: auto !important;
+  background-color: #2c2f36 !important;
+}
+
+.fc-timegrid-col-frame,
+.fc-timegrid-slot {
+  background-color: #2c2f36 !important;
+  border-top: 1px solid #3d4049 !important;
+}
+
+.fc-timegrid-slot-label {
+  color: #b0b3b8;
+  font-weight: 500;
+  font-size: 0.85em;
+}
+
+.fc-event {
+  background-color: rgba(0, 123, 255, 0.8);
+  color: #fff;
+  font-size: 0.85em;
+  padding: 3px 6px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
-.chatbot-header {
-  background: linear-gradient(135deg, #6a11cb, #2575fc);
-  color: white;
-  font-family: 'Quicksand', sans-serif;
-  font-size: 18px;
-  padding: 10px 15px;
+.fc-event:hover {
+  background-color: rgba(0, 123, 255, 1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 6px rgba(0, 123, 255, 0.4);
 }
 
-.bot-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 22px;
-  cursor: pointer;
-}
-
-.chat-body {
-  flex: 1;
-  padding: 10px;
-  overflow-y: auto;
-  background: #f9f9f9;
-}
-
-.chat-input {
-  background: #ffffff;
-  border-top: 1px solid #ddd;
-}
-
-#userInput {
-  font-size: 14px;
-}
-
-#sendBtn {
-  font-size: 14px;
-  background-color: #007bff;
-  border-radius: 20px;
-}
-
-#sendBtn:hover {
-  background-color: #0056b3;
-}
-
-/* Footer */
-.footer {
-  background-color: #2c2c2e;
-  color: #d1d1d6;
-  border-top: 1px solid #3a3a3c;
-  text-align: center;
-  padding: 1rem 0;
+.fc-now-indicator {
+  background-color: #ff5c5c !important;
 }
