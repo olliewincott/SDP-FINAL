@@ -474,7 +474,7 @@ def create_mood_entry(request):
 
 @login_required
 def ai_assistant_view(request):
-    return render(request, 'ai_assistant.html')
+    return render(request, 'includes/ai/ai_assistant.html')
 
 @login_required
 def wellbeing_view(request):

@@ -63,7 +63,7 @@ ROOT_URLCONF = 'sdproject.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "templates"],  # 👈 THIS LINE is important
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
