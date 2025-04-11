@@ -501,3 +501,51 @@ def update_event_time(request):
             print("Update error:", e)
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False})
+
+@require_POST
+@login_required
+def add_task(request):
+    title = request.POST.get("title")
+    description = request.POST.get("description")
+    due_date = request.POST.get("due_date")
+
+    if not title or not due_date:
+        return JsonResponse({"success": False, "error": "Missing title or due date"})
+
+    Task.objects.create(
+        user=request.user,
+        title=title,
+        description=description or "",
+        due_date=due_date
+    )
+
+    return JsonResponse({"success": True})
+
+@require_POST
+@login_required
+def add_reminder(request):
+    event_id = request.POST.get("event_id")
+    reminder_time = request.POST.get("reminder_time")
+
+    if not event_id or not reminder_time:
+        return JsonResponse({"success": False, "error": "Missing event ID or time"})
+
+    Reminder.objects.create(
+        user=request.user,
+        event_id=event_id,
+        reminder_time=reminder_time
+    )
+
+    return JsonResponse({"success": True})
+
+
+@require_POST
+@login_required
+def toggle_reminder(request, reminder_id):
+    try:
+        reminder = Reminder.objects.get(id=reminder_id, user=request.user)
+        reminder.dismissed = not reminder.dismissed
+        reminder.save()
+        return JsonResponse({"success": True, "dismissed": reminder.dismissed})
+    except Reminder.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Reminder not found"})

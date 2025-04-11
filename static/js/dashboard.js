@@ -161,3 +161,23 @@ document.addEventListener('DOMContentLoaded', function () {
     return '';
   }
 });
+
+// 📌 Toggle reminder as acknowledged/unacknowledged
+document.querySelectorAll('.reminder-item').forEach(item => {
+  item.addEventListener('click', function () {
+    const icon = this.querySelector('.reminder-icon');
+    const isSilenced = icon.classList.contains('fa-bell-slash');
+
+    if (isSilenced) {
+      // Restore state
+      this.style.opacity = '1';
+      icon.classList.remove('fa-bell-slash', 'text-secondary');
+      icon.classList.add('fa-bell', 'text-info');
+    } else {
+      // Silence it
+      this.style.opacity = '0.5';
+      icon.classList.remove('fa-bell', 'text-info');
+      icon.classList.add('fa-bell-slash', 'text-secondary');
+    }
+  });
+});

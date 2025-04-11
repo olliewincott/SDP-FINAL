@@ -177,3 +177,12 @@ nav.navbar {
 .fc-now-indicator {
   background-color: #ff5c5c !important;
 }
+
+.reminder-item {
+  transition: opacity 0.3s ease;
+  cursor: pointer;
+}
+
+.reminder-item .reminder-icon {
+  transition: color 0.3s ease;
+}

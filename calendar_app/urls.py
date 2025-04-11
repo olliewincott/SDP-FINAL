@@ -31,5 +31,9 @@ urlpatterns = [
     path('ai/', views.ai_assistant_view, name='ai_assistant'),
     path('wellbeing/', views.wellbeing_view, name='wellbeing'),
     path('update-event-time/', views.update_event_time, name='update_event_time'),
-
+    path('add_task/', views.add_task, name='add_task'),
+    path('add_reminder/', views.add_reminder, name='add_reminder'),
+    path('toggle_reminder/<int:reminder_id>/', views.toggle_reminder, name='toggle_reminder'),
 ]
+
+

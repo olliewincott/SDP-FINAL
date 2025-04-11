@@ -10,16 +10,6 @@
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
   <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-
-  <!-- Hide default navbar globally -->
-  <style>
-    nav.navbar {
-      display: none !important;
-    }
-    canvas {
-      max-height: 400px;
-    }
-  </style>
   {% endblock head %}
 </head>
 <body>
@@ -28,32 +18,46 @@
       {% include 'includes/sidebar.html' %}
 
       <main class="col-12 col-md-9 col-lg-10 py-3 dashboard-content">
-        <!-- Dashboard Header -->
+        <!-- Top Bar -->
         <div class="row align-items-center mb-3 rounded p-3 top-bar">
           <div class="col">
             <h2 class="mb-0">Dashboard</h2>
           </div>
         </div>
 
-        <!-- Dashboard Layout -->
+        <!-- Two-Column Layout -->
         <div class="row d-flex align-items-stretch">
-          <!-- Left Column (Calendar) -->
+          <!-- Left Column -->
           <div class="col-lg-6 mb-3 d-flex flex-column">
-            <div class="widget calendar">
-              {% include 'includes/dailyview.html' with daily_view=True %}
+            <div class="mb-3">
+              <div class="widget calendar">
+                {% include 'includes/dailyview.html' with daily_view=True %}
+              </div>
             </div>
           </div>
 
-          <!-- Right Column (Reminders & Tasks) -->
+          <!-- Right Column -->
           <div class="col-lg-6 mb-3 d-flex flex-column">
-            <div class="widget reminders mb-3">
-              <h5 class="widget-heading"><i class="fas fa-bell"></i> Reminders</h5>
-              {% include 'includes/reminders.html' with reminders=reminders %}
+            <!-- Reminders -->
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="widget-heading mb-0"><i class="fas fa-bell"></i> Reminders</h5>
+                <span data-bs-toggle="modal" data-bs-target="#addReminderModal" class="fs-3 text-light" style="cursor:pointer;">+</span>
+              </div>
+              <div class="widget reminders">
+                {% include 'includes/reminders.html' with reminders=reminders %}
+              </div>
             </div>
 
-            <div class="widget tasks">
-              <h5 class="widget-heading"><i class="fas fa-tasks"></i> Today’s Tasks</h5>
-              {% include 'includes/daily_tasks.html' %}
+            <!-- Tasks -->
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="widget-heading mb-0"><i class="fas fa-tasks"></i> Today’s Tasks</h5>
+                <span data-bs-toggle="modal" data-bs-target="#addTaskModal" class="fs-3 text-light" style="cursor:pointer;">+</span>
+              </div>
+              <div class="widget tasks">
+                {% include 'includes/daily_tasks.html' %}
+              </div>
             </div>
           </div>
         </div>
@@ -61,58 +65,12 @@
     </div>
   </div>
 
-  <!-- Modal: Add/Edit Event -->
-  <div class="modal fade" id="addEventModal" tabindex="-1" aria-labelledby="addEventModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <form id="addEventForm" class="modal-content text-dark">
-        <div class="modal-header">
-          <h5 class="modal-title" id="addEventModalLabel">Add New Event</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
+  <!-- Modals -->
+  {% include 'includes/event_modal.html' %}
+  {% include 'includes/add_reminder_modal.html' %}
+  {% include 'includes/add_task_modal.html' %}
 
-        <div class="modal-body">
-          <input type="hidden" name="user_id" value="{{ request.user.id }}">
-
-          <div class="mb-3">
-            <label for="event-title" class="form-label">Title</label>
-            <input type="text" class="form-control" id="event-title" name="title" required>
-          </div>
-
-          <div class="mb-3">
-            <label for="event-description" class="form-label">Description</label>
-            <textarea class="form-control" id="event-description" name="description"></textarea>
-          </div>
-
-          <div class="mb-3">
-            <label for="event-category" class="form-label">Category</label>
-            <select class="form-control" id="event-category" name="category_id" required>
-              <option value="" disabled selected>Select a category</option>
-              {% for category in categories %}
-                <option value="{{ category.id }}">{{ category.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="mb-3">
-            <label for="event-start" class="form-label">Start Time</label>
-            <input type="datetime-local" class="form-control" id="event-start" name="start_time" required>
-          </div>
-
-          <div class="mb-3">
-            <label for="event-end" class="form-label">End Time</label>
-            <input type="datetime-local" class="form-control" id="event-end" name="end_time" required>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Create Event</button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- JS Context Variables -->
+  <!-- Global JS Vars -->
   <script>
     window.tasksJsonUrl = "{% url 'all_tasks_json' %}";
     window.updateTaskStatusUrl = "{% url 'update_task_status' %}";
@@ -122,15 +80,14 @@
     window.eventsJsonUrl = "{% url 'events_json' %}";
   </script>
 
-  <!-- External JS Dependencies -->
+  <!-- Scripts -->
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Page Scripts -->
   {% include 'includes/scripts.html' %}
   {% block page_scripts %}
-    <script src="{% static 'js/dashboard.js' %}"></script>
+  <script src="{% static 'js/dashboard.js' %}"></script>
   {% endblock %}
 </body>
 </html>

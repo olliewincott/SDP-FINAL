@@ -1,0 +1,36 @@
+<!-- Reminder Modal -->
+<div class="modal fade" id="addReminderModal" tabindex="-1" aria-labelledby="addReminderModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="POST" action="{% url 'add_reminder' %}" class="modal-content text-dark">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title" id="addReminderModalLabel">Add New Reminder</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" name="user_id" value="{{ request.user.id }}">
+
+        <div class="mb-3">
+          <label for="reminder-event" class="form-label">Event</label>
+          <select class="form-control" id="reminder-event" name="event_id" required>
+            <option value="" disabled selected>Select an event</option>
+            {% for event in request.user.calendarevent_set.all %}
+              <option value="{{ event.id }}">{{ event.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="reminder-time" class="form-label">Reminder Time</label>
+          <input type="datetime-local" class="form-control" id="reminder-time" name="reminder_time" required>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Create Reminder</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
