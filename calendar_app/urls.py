@@ -30,10 +30,14 @@ urlpatterns = [
     path('mood/create/', views.create_mood_entry, name='create_mood_entry'),
     path('ai/', views.ai_assistant_view, name='ai_assistant'),
     path('wellbeing/', views.wellbeing_view, name='wellbeing'),
-    path('update-event-time/', views.update_event_time, name='update_event_time'),
+    path('update_event_time/', views.update_event_time, name='update_event_time'),
     path('add_task/', views.add_task, name='add_task'),
     path('add_reminder/', views.add_reminder, name='add_reminder'),
     path('toggle_reminder/<int:reminder_id>/', views.toggle_reminder, name='toggle_reminder'),
+    path('delete_reminder/<int:reminder_id>/', views.delete_reminder, name='delete_reminder'),
+    path('edit_reminder/<int:reminder_id>/', views.edit_reminder, name='edit_reminder'),
+    path('delete_task/<int:task_id>/', views.delete_task, name='delete_task'),
+
 ]
 
 

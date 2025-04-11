@@ -1,8 +1,8 @@
 <!-- Reminder Modal -->
 <div class="modal fade" id="addReminderModal" tabindex="-1" aria-labelledby="addReminderModalLabel" aria-hidden="true">
   <div class="modal-dialog">
-    <form method="POST" action="{% url 'add_reminder' %}" class="modal-content text-dark">
-      {% csrf_token %}
+    <form id="addReminderForm" class="modal-content text-dark">
+      <!-- CSRF will be sent via JS -->
       <div class="modal-header">
         <h5 class="modal-title" id="addReminderModalLabel">Add New Reminder</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

@@ -1,15 +1,41 @@
-<ul class="list-group bg-transparent" id="reminder-list">
+<ul class="list-group bg-transparent" id="reminder-list" style="padding-left: 0;">
   {% if reminders and reminders|length > 0 %}
     {% for reminder in reminders %}
       <li 
         class="list-group-item reminder-item d-flex justify-content-between align-items-center bg-dark text-light border-0 rounded mb-2 shadow-sm px-3 py-2" 
         data-reminder-id="{{ reminder.id }}"
       >
+        <!-- Left: Bell icon + Title -->
         <div class="d-flex align-items-center">
           <i class="fas fa-bell mr-2 text-info reminder-icon"></i>
           <span class="font-weight-semibold">{{ reminder.event.title }}</span>
         </div>
-        <small class="text-muted">{{ reminder.reminder_time|date:"M j, g:i A" }}</small>
+
+        <!-- Right: Time + Controls -->
+        <div class="d-flex align-items-center gap-3">
+          <small class="text-muted me-2">{{ reminder.reminder_time|date:"M j, g:i A" }}</small>
+          
+          <div class="reminder-controls d-flex gap-2">
+            <button 
+              class="btn btn-sm text-light edit-reminder-btn" 
+              data-id="{{ reminder.id }}"
+              data-title="{{ reminder.event.title }}"
+              data-time="{{ reminder.reminder_time|date:'Y-m-d\\TH:i' }}"
+              data-event-id="{{ reminder.event.id }}"
+              title="Edit"
+            >
+              <i class="fas fa-edit"></i>
+            </button>
+
+            <button 
+              class="btn btn-sm text-light delete-reminder-btn" 
+              data-id="{{ reminder.id }}"
+              title="Delete"
+            >
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+        </div>
       </li>
     {% endfor %}
   {% else %}

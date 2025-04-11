@@ -38,13 +38,23 @@
 
           <!-- Right Column -->
           <div class="col-lg-6 mb-3 d-flex flex-column">
+
             <!-- Reminders -->
             <div class="mb-3">
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <h5 class="widget-heading mb-0"><i class="fas fa-bell"></i> Reminders</h5>
-                <span data-bs-toggle="modal" data-bs-target="#addReminderModal" class="fs-3 text-light" style="cursor:pointer;">+</span>
+                <div class="dropdown">
+                  <button class="btn text-light p-0 border-0 bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v fs-5"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addReminderModal">➕ Add Reminder</a></li>
+                    <li><a class="dropdown-item disabled" href="#">✏️ Edit Reminder</a></li>
+                    <li><a class="dropdown-item disabled" href="#">🗑️ Delete Reminder</a></li>
+                  </ul>
+                </div>
               </div>
-              <div class="widget reminders">
+              <div class="widget reminders" id="reminder-list-wrapper">
                 {% include 'includes/reminders.html' with reminders=reminders %}
               </div>
             </div>
@@ -53,12 +63,22 @@
             <div>
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <h5 class="widget-heading mb-0"><i class="fas fa-tasks"></i> Today’s Tasks</h5>
-                <span data-bs-toggle="modal" data-bs-target="#addTaskModal" class="fs-3 text-light" style="cursor:pointer;">+</span>
+                <div class="dropdown">
+                  <button class="btn text-light p-0 border-0 bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v fs-5"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addTaskModal">➕ Add Task</a></li>
+                    <li><a class="dropdown-item disabled" href="#">✏️ Edit Task</a></li>
+                    <li><a class="dropdown-item disabled" href="#">🗑️ Delete Task</a></li>
+                  </ul>
+                </div>
               </div>
-              <div class="widget tasks">
+              <div class="widget tasks" id="task-list-wrapper">
                 {% include 'includes/daily_tasks.html' %}
               </div>
             </div>
+
           </div>
         </div>
       </main>
@@ -87,7 +107,7 @@
 
   {% include 'includes/scripts.html' %}
   {% block page_scripts %}
-  <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
   {% endblock %}
 </body>
 </html>

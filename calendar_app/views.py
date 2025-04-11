@@ -15,6 +15,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.utils import timezone
 from django.utils.timezone import localtime
 from django.utils.timezone import now as timezone_now, make_aware, is_naive
+from django.utils.dateparse import parse_datetime as django_parse_datetime
 
 
 
@@ -502,42 +503,91 @@ def update_event_time(request):
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False})
 
-@require_POST
+@csrf_exempt
 @login_required
 def add_task(request):
-    title = request.POST.get("title")
-    description = request.POST.get("description")
-    due_date = request.POST.get("due_date")
+    if request.method == "POST":
+        title = request.POST.get('title')
+        description = request.POST.get('description', '')
+        due_date = request.POST.get('due_date')
 
-    if not title or not due_date:
-        return JsonResponse({"success": False, "error": "Missing title or due date"})
+        if not title or not due_date:
+            return JsonResponse({'success': False, 'error': 'Title and due date are required.'})
 
-    Task.objects.create(
-        user=request.user,
-        title=title,
-        description=description or "",
-        due_date=due_date
-    )
+        try:
+            parsed_due_date = django_parse_datetime(due_date)
+            task = Task.objects.create(
+                user=request.user,
+                title=title,
+                description=description,
+                due_date=parsed_due_date
+            )
+            return JsonResponse({
+                'success': True,
+                'task': {
+                    'id': task.id,
+                    'title': task.title,
+                    'description': task.description,
+                    'due_date': task.due_date.isoformat()
+                }
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
 
-    return JsonResponse({"success": True})
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
-@require_POST
+@csrf_exempt
 @login_required
 def add_reminder(request):
-    event_id = request.POST.get("event_id")
-    reminder_time = request.POST.get("reminder_time")
+    if request.method == "POST":
+        event_id = request.POST.get('event_id')
+        reminder_time = request.POST.get('reminder_time')
 
-    if not event_id or not reminder_time:
-        return JsonResponse({"success": False, "error": "Missing event ID or time"})
+        if not event_id or not reminder_time:
+            return JsonResponse({'success': False, 'error': 'Event and time are required.'})
 
-    Reminder.objects.create(
-        user=request.user,
-        event_id=event_id,
-        reminder_time=reminder_time
-    )
+        try:
+            event = CalendarEvent.objects.get(id=event_id, user=request.user)
+        except CalendarEvent.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Event not found.'})
 
-    return JsonResponse({"success": True})
+        try:
+            parsed_time = django_parse_datetime(reminder_time)
+            reminder = Reminder.objects.create(
+                user=request.user,
+                event=event,
+                reminder_time=parsed_time
+            )
 
+            return JsonResponse({
+                'success': True,
+                'reminder': {
+                    'id': reminder.id,
+                    'title': event.title,
+                    'time': reminder.reminder_time.isoformat()
+                }
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+@login_required
+@csrf_exempt
+def update_event_time(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            event = CalendarEvent.objects.get(id=data['id'])
+            event.start_time = data['start']
+            if data.get('end'):
+                event.end_time = data['end']
+            event.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            print("Update error:", e)
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False})
 
 @require_POST
 @login_required
@@ -549,3 +599,49 @@ def toggle_reminder(request, reminder_id):
         return JsonResponse({"success": True, "dismissed": reminder.dismissed})
     except Reminder.DoesNotExist:
         return JsonResponse({"success": False, "error": "Reminder not found"})
+
+
+@csrf_exempt
+@login_required
+def delete_reminder(request, reminder_id):
+    if request.method == "POST":
+        try:
+            reminder = Reminder.objects.get(id=reminder_id, user=request.user)
+            reminder.delete()
+            return JsonResponse({'success': True})
+        except Reminder.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Reminder not found'})
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+@csrf_exempt
+@login_required
+def edit_reminder(request, reminder_id):
+    if request.method == "POST":
+        try:
+            reminder = Reminder.objects.get(id=reminder_id, user=request.user)
+            event_id = request.POST.get('event_id')
+            reminder_time = request.POST.get('reminder_time')
+
+            if event_id:
+                reminder.event_id = event_id
+            if reminder_time:
+                reminder.reminder_time = reminder_time
+            reminder.save()
+
+            return JsonResponse({'success': True})
+        except Reminder.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Reminder not found'})
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
+@csrf_exempt
+@login_required
+def delete_task(request, task_id):
+    if request.method == "POST":
+        try:
+            task = Task.objects.get(id=task_id, user=request.user)
+            task.delete()
+            return JsonResponse({'success': True})
+        except Task.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Task not found.'})
+    return JsonResponse({'success': False, 'error': 'Invalid request method.'})

@@ -1,8 +1,8 @@
 <!-- Task Modal -->
 <div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
   <div class="modal-dialog">
-    <form method="POST" action="{% url 'add_task' %}" class="modal-content text-dark">
-      {% csrf_token %}
+    <form id="addTaskForm" class="modal-content text-dark">
+      <!-- No method / action / csrf_token -->
       <div class="modal-header">
         <h5 class="modal-title" id="addTaskModalLabel">Add New Task</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
