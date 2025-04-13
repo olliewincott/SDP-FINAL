@@ -132,10 +132,7 @@ nav.navbar {
   box-shadow: none;
 }
 
-/* Calendar Grid */
-.fc-col-header-cell {
-  display: none !important;
-}
+
 
 .fc-timegrid-container {
   max-height: 640px;

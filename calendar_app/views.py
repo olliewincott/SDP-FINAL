@@ -444,7 +444,10 @@ def tasks_view(request):
 
 @login_required
 def calendar_view(request):
-    return render(request, 'calendar.html')
+    categories = Category.objects.all()
+    return render(request, 'calendar.html', {
+        'categories': categories
+    })
 
 def register(request):
     if request.method == "POST":
