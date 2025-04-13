@@ -460,18 +460,23 @@ def register(request):
     return render(request, 'register.html', {'form': form})
 
 @login_required
+@csrf_exempt
 def create_mood_entry(request):
     if request.method == 'POST':
         mood_rating = request.POST.get('mood_rating')
         note = request.POST.get('note', '')
-        # Create the MoodEntry record for the logged-in user
+
         MoodEntry.objects.create(
             user=request.user,
             mood_rating=mood_rating,
             note=note
         )
-        return redirect('dashboard')  # Adjust as needed
-    return render(request, 'mood_tracker.html')
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': True})
+        return redirect('wellbeing')  # fallback for non-AJAX
+
+    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
 
 @login_required
 def ai_assistant_view(request):

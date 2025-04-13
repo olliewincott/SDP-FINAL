@@ -27,3 +27,67 @@
     </ul>
   </nav>
 </aside>
+
+<style>
+  /* Ensure sidebar spans the entire height of the page */
+  #sidebar {
+    position: sticky; /* Makes sure the sidebar stays in place */
+    top: 0; /* Keeps the sidebar at the top of the page */
+    height: 100vh; /* Ensures the sidebar spans the entire height of the screen */
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 20px; /* Adds padding at the bottom to prevent overflow */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2); /* Optional: Adds shadow for depth */
+  }
+
+  /* Ensuring the sidebar content fills available space */
+  .sidebar-nav {
+    flex-grow: 1;
+  }
+
+  /* Style for the profile section */
+  .profile-section {
+    margin-bottom: 20px;
+  }
+
+  /* Navigation styling to ensure readability */
+  .sidebar-nav ul {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .sidebar-nav ul li {
+    margin-bottom: 10px;
+  }
+
+  .sidebar-nav a {
+    text-decoration: none;
+    color: #d1d1d6;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+  }
+
+  .sidebar-nav a:hover {
+    color: #5AC8FA; /* Add color on hover */
+  }
+
+  /* Style the section headers */
+  .sidebar-nav .text-uppercase {
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  /* Style icons inside the sidebar */
+  .sidebar-nav i {
+    margin-right: 8px;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    #sidebar {
+      position: relative;
+      height: auto; /* Let the sidebar adjust based on content on smaller screens */
+    }
+  }
+</style>

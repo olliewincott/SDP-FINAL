@@ -1,8 +1,6 @@
-{% load static %}
-
 <div class="mood-tracker-content">
   <h5 class="mb-3">Mood Tracker</h5>
-  <form method="post" action="{% url 'create_mood_entry' %}" class="mood-form">
+  <form id="mood-form" method="post">
     {% csrf_token %}
     <!-- Emoji Selector with Font Awesome Icons -->
     <div class="form-group">
@@ -27,6 +25,7 @@
       <!-- Hidden input to store selected mood rating -->
       <input type="hidden" name="mood_rating" id="mood_rating" value="5">
     </div>
+    
     <!-- Toggle for Optional Comments -->
     <div class="form-group mt-3">
       <label class="toggle-note" style="cursor: pointer;">
@@ -34,6 +33,11 @@
       </label>
       <textarea class="form-control note-textarea" name="note" rows="3" placeholder="Write your note here..." style="display: none;"></textarea>
     </div>
+    
+    <!-- Feedback Message -->
+    <div id="mood-feedback" class="text-success mt-2" style="display: none;"></div>
+
+    <!-- Submit Button -->
     <button type="submit" class="btn btn-primary mt-3">Submit Mood</button>
   </form>
 </div>
@@ -51,6 +55,7 @@
     color: #d1d1d6;
     font-weight: 500;
   }
+
   /* Emoji Selector Styling */
   .emoji-selector {
     display: flex;
@@ -71,12 +76,14 @@
   .emoji-btn.selected {
     color: #5AC8FA; /* Matches your wellness icon accent */
   }
+
   /* Toggle note styling */
   .toggle-note {
     display: block;
     font-size: 1rem;
     margin-bottom: 0.5rem;
   }
+
   /* Textarea for note */
   .note-textarea {
     background-color: #2c2c2e;
@@ -87,6 +94,7 @@
     border-color: #5AC8FA;
     box-shadow: 0 0 0 0.2rem rgba(60,120,210,0.5);
   }
+
   /* Submit Button Styling */
   .mood-form .btn-primary {
     background-color: #5AC8FA;
@@ -100,33 +108,76 @@
 </style>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Handle emoji selection
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('mood-form');
     const emojiButtons = document.querySelectorAll('.emoji-btn');
     const moodRatingInput = document.getElementById('mood_rating');
-    
+    const noteToggle = document.querySelector('.toggle-note');
+    const noteTextarea = document.querySelector('.note-textarea');
+    const feedback = document.getElementById('mood-feedback');
+
+    // Emoji selection
     emojiButtons.forEach(btn => {
-      btn.addEventListener('click', function() {
+      btn.addEventListener('click', () => {
         emojiButtons.forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
-        moodRatingInput.value = btn.getAttribute('data-rating');
+        moodRatingInput.value = btn.dataset.rating;
       });
     });
 
-    // Toggle the visibility of the note textarea when the label is clicked
-    const toggleNoteLabel = document.querySelector('.toggle-note');
-    const noteTextarea = document.querySelector('.note-textarea');
-    
-    toggleNoteLabel.addEventListener('click', function() {
-      // Toggle display style between "none" and "block"
-      if (noteTextarea.style.display === 'none' || noteTextarea.style.display === '') {
-        noteTextarea.style.display = 'block';
-        // Optionally change the chevron icon to indicate collapse
-        toggleNoteLabel.innerHTML = 'Add a note for this mood (optional) <i class="fas fa-chevron-up"></i>';
-      } else {
-        noteTextarea.style.display = 'none';
-        toggleNoteLabel.innerHTML = 'Add a note for this mood (optional) <i class="fas fa-chevron-down"></i>';
-      }
+    // Toggle note
+    noteToggle.addEventListener('click', () => {
+      const isOpen = noteTextarea.style.display === 'block';
+      noteTextarea.style.display = isOpen ? 'none' : 'block';
+      noteToggle.innerHTML = `Add a note for this mood (optional) <i class="fas fa-chevron-${isOpen ? 'down' : 'up'}"></i>`;
     });
+
+    // AJAX submit
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const formData = new URLSearchParams();
+      formData.append('mood_rating', moodRatingInput.value);
+      formData.append('note', noteTextarea.value);
+
+      fetch("{% url 'create_mood_entry' %}", {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCSRFToken(),
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          form.reset();
+          feedback.textContent = 'Mood successfully recorded!';
+          feedback.style.display = 'block';
+          noteTextarea.style.display = 'none';
+          emojiButtons.forEach(b => b.classList.remove('selected'));
+          moodRatingInput.value = '5';
+          setTimeout(() => feedback.style.display = 'none', 3000);
+        } else {
+          alert('Failed to save mood.');
+        }
+      })
+      .catch(err => {
+        console.error('Mood submit error:', err);
+        alert('Something went wrong.');
+      });
+    });
+
+    function getCSRFToken() {
+      const name = 'csrftoken';
+      const cookies = document.cookie.split(';');
+      for (let c of cookies) {
+        if (c.trim().startsWith(name + '=')) {
+          return c.trim().substring(name.length + 1);
+        }
+      }
+      return '';
+    }
   });
 </script>
