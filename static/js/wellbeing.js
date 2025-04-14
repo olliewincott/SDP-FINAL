@@ -1,7 +1,7 @@
+
 console.log("📈 Wellbeing.js loaded");
 
 document.addEventListener("DOMContentLoaded", function () {
-  // ---- Load Wellness Stats on Page Load ----
   fetch(window.wellnessJsonUrl)
     .then(r => r.json())
     .then(data => {
@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", function () {
       console.error("❌ Error fetching wellness data:", err);
     });
 
-  // ---- Make Wellness Widgets Clickable ----
   document.querySelectorAll('.wellness-widget').forEach(widget => {
     widget.addEventListener('click', () => {
       const statType = widget.dataset.type;
@@ -36,18 +35,30 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // ---- Update UI Progress ----
   function updateWellnessProgress(data) {
     const waterPercent = Math.min((data.water_intake / 8) * 100, 100);
     const breaksPercent = Math.min((data.movement_breaks / 3) * 100, 100);
     const mealsPercent = Math.min((data.healthy_meals / 3) * 100, 100);
 
-    document.getElementById("water-progress").textContent = `${Math.round(waterPercent)}%`;
-    document.getElementById("breaks-progress").textContent = `${Math.round(breaksPercent)}%`;
-    document.getElementById("meals-progress").textContent = `${Math.round(mealsPercent)}%`;
+    setStat("water", waterPercent);
+    setStat("breaks", breaksPercent);
+    setStat("meals", mealsPercent);
   }
 
-  // ---- CSRF Helper ----
+  function setStat(type, percent) {
+    const progressEl = document.getElementById(`${type}-progress`);
+    progressEl.textContent = `${Math.round(percent)}%`;
+
+    if (percent === 100 && typeof confetti === "function") {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.4 },
+        colors: ['#4cd964', '#5AC8FA', '#ffcc00']
+      });
+    }
+  }
+
   function getCSRFToken() {
     const name = 'csrftoken';
     const cookies = document.cookie.split(';');

@@ -1,47 +1,60 @@
-<!-- wellness_stats.html -->
 <style>
-  /* Styling for the circular progress container */
   .progress-circle {
     position: relative;
     width: 80px;
     height: 80px;
     margin: 0 auto 10px auto;
     border-radius: 50%;
-    background-color: #1c1c1e;  /* Matches dark background */
-    border: 3px solid #66afe9;  /* Soft blue accent */
+    background-color: #1c1c1e;
+    border: 3px solid #66afe9;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: transform 0.2s ease;
   }
-  /* Styling for the clickable button inside the circle */
-  .progress-circle .update-btn {
+
+  .progress-circle:active {
+    animation: pulse 0.3s ease;
+  }
+
+  .update-btn {
     background: none;
     border: none;
-    color: #66afe9;  /* Soft blue accent */
+    color: #66afe9;
     font-size: 1.8rem;
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition: transform 0.3s ease, color 0.3s ease;
   }
-  .progress-circle .update-btn:hover {
-    color: #4a90e2;  /* Darker blue on hover */
+
+  .update-btn:hover {
+    transform: scale(1.2);
+    color: #4a90e2;
   }
-  /* Styling for the progress percentage text (slightly lower to create a gap) */
+
   .progress-circle span {
     position: absolute;
-    bottom: -24px; /* Increased from -20px to add a small gap */
+    bottom: -24px;
     width: 100%;
     font-size: 0.9rem;
     color: #d1d1d6;
     text-align: center;
   }
+
+  .stat-card h6 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
 </style>
 
-<h5>Today's Wellness Goals</h5>
-
 <div class="d-flex justify-content-between mb-3">
-  <!-- Hydration -->
   <div class="stat-card wellness-widget text-center p-2 mx-1 flex-fill" data-type="water">
-    <h6>Hydration</h6>
+    <h6>💧 Hydration</h6>
     <div class="progress-circle">
       <button class="update-btn" data-goal="water">
         <i class="fas fa-tint"></i>
@@ -50,10 +63,9 @@
     </div>
     <small class="text-muted">Goal: 8 cups</small>
   </div>
-  
-  <!-- Breaks -->
+
   <div class="stat-card wellness-widget text-center p-2 mx-1 flex-fill" data-type="breaks">
-    <h6>Breaks</h6>
+    <h6>🧍‍♂️ Breaks</h6>
     <div class="progress-circle">
       <button class="update-btn" data-goal="breaks">
         <i class="fas fa-walking"></i>
@@ -62,10 +74,9 @@
     </div>
     <small class="text-muted">Goal: 3/day</small>
   </div>
-  
-  <!-- Meals -->
+
   <div class="stat-card wellness-widget text-center p-2 mx-1 flex-fill" data-type="meals">
-    <h6>Meals</h6>
+    <h6>🍽 Meals</h6>
     <div class="progress-circle">
       <button class="update-btn" data-goal="meals">
         <i class="fas fa-utensils"></i>

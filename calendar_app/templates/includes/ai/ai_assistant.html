@@ -28,6 +28,7 @@
 <script>
   const botui = new BotUI('botui-app');
   const conversationHistory = [];
+  let currentMode = 'event';  // 🔁 default mode
 
   function getCSRFToken() {
     const name = 'csrftoken';
@@ -53,7 +54,6 @@
 
     document.getElementById('custom-user-input').value = "";
 
-    // ✨ Add animated typing dots
     const typingHTML = `
       <div class="typing-indicator">
         <span></span><span></span><span></span>
@@ -67,7 +67,11 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': getCSRFToken()
         },
-        body: JSON.stringify({ message, history: conversationHistory })
+        body: JSON.stringify({
+          message,
+          history: conversationHistory,
+          mode: currentMode  // 👈 include selected mode
+        })
       })
       .then(r => r.json())
       .then(data => {
@@ -104,13 +108,21 @@
 
     document.querySelectorAll('.suggested-actions span').forEach(btn => {
       btn.addEventListener('click', () => {
-        sendToAssistant(btn.textContent.trim());
+        const text = btn.textContent.trim();
+        const mode = btn.dataset.mode || 'event';
+        currentMode = mode;
+
+        // Optional: highlight selected mode
+        document.querySelectorAll('.suggested-actions span').forEach(b => b.classList.remove('active-mode'));
+        btn.classList.add('active-mode');
+
+        sendToAssistant(text);
       });
     });
   });
 </script>
 
-<!-- ✨ Typing animation styles -->
+<!-- Typing animation -->
 <style>
   .typing-indicator {
     display: inline-flex;
@@ -130,23 +142,19 @@
     animation: typing-bounce 1.2s infinite ease-in-out;
   }
 
-  .typing-indicator span:nth-child(2) {
-    animation-delay: 0.15s;
-  }
-
-  .typing-indicator span:nth-child(3) {
-    animation-delay: 0.3s;
-  }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
 
   @keyframes typing-bounce {
-    0%, 80%, 100% {
-      transform: scale(0.8);
-      opacity: 0.5;
-    }
-    40% {
-      transform: scale(1.4);
-      opacity: 1;
-    }
+    0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+    40% { transform: scale(1.4); opacity: 1; }
+  }
+
+  .suggested-actions span.active-mode {
+    background-color: #5ac8fa;
+    color: white;
+    border-radius: 8px;
+    padding: 4px 10px;
   }
 </style>
 {% endblock %}
