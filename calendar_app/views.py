@@ -16,6 +16,8 @@ from django.utils import timezone
 from django.utils.timezone import localtime
 from django.utils.timezone import now as timezone_now, make_aware, is_naive
 from django.utils.dateparse import parse_datetime as django_parse_datetime
+from django.db import transaction, OperationalError
+import time
 
 
 
@@ -39,21 +41,27 @@ def events_json(request):
     events = CalendarEvent.objects.filter(
         user=request.user
     ).exclude(
-        reminder__isnull=False  # Exclude events that have associated reminders
+        reminder__isnull=False  # Exclude events that are reminders
     ).order_by("start_time")
 
     event_list = []
     for event in events:
+        # Grab the first associated category from the EventCategory model
+        event_category = EventCategory.objects.filter(event=event).select_related('category').first()
+        color = event_category.category.color if event_category and event_category.category else '#5ac8fa'
+        category_id = event_category.category.id if event_category and event_category.category else None
+
         event_list.append({
             "id": event.id,
             "title": event.title,
             "start": event.start_time.isoformat(),
             "end": event.end_time.isoformat(),
             "description": event.description,
+            "backgroundColor": color,
+            "category_id": category_id,  # ✅ Added here
         })
+
     return JsonResponse(event_list, safe=False)
-
-
 # -----------------------------
 # Other Existing Views
 # -----------------------------
@@ -377,42 +385,67 @@ def add_event(request):
             print("✅ Incoming POST request to add_event")
             print("✅ Request data:", request.POST)
 
-            title = request.POST.get("title")
-            description = request.POST.get("description")
-            start_time = request.POST.get("start_time")
-            end_time = request.POST.get("end_time")
-            user_id = request.POST.get("user_id")
-            add_reminder = request.POST.get("add_reminder")
-            reminder_time = request.POST.get("reminder_time", None)
+            for _ in range(3):  # retry 3 times if locked
+                try:
+                    with transaction.atomic():
+                        event_id = request.POST.get("id")
+                        title = request.POST.get("title")
+                        description = request.POST.get("description")
+                        start_time_raw = request.POST.get("start_time")
+                        end_time_raw = request.POST.get("end_time")
+                        user_id = request.POST.get("user_id")
+                        add_reminder = request.POST.get("add_reminder")
+                        reminder_time = request.POST.get("reminder_time", None)
 
-            category_option = request.POST.get("category_option")
-            category_id = request.POST.get("category_id")
-            new_category_name = request.POST.get("new_category_name")
+                        category_option = request.POST.get("category_option")
+                        category_id = request.POST.get("category_id")
+                        new_category_name = request.POST.get("new_category_name")
 
-            if not title or not start_time or not end_time or not user_id:
-                return JsonResponse({"error": "All fields are required."}, status=400)
+                        if not title or not start_time_raw or not end_time_raw or not user_id:
+                            return JsonResponse({"error": "All fields are required."}, status=400)
 
-            user = get_object_or_404(User, id=user_id)
+                        start_time = make_aware(datetime.fromisoformat(start_time_raw))
+                        end_time = make_aware(datetime.fromisoformat(end_time_raw))
 
-            event = CalendarEvent.objects.create(
-                title=title, description=description,
-                start_time=start_time, end_time=end_time, user=user
-            )
-            print(f"✅ Created event: {event.title}")
+                        user = get_object_or_404(User, id=user_id)
 
-            if category_option == "new" and new_category_name:
-                category = Category.objects.create(name=new_category_name)
-            else:
-                category = get_object_or_404(Category, id=category_id)
+                        if event_id:
+                            event = get_object_or_404(CalendarEvent.objects.select_for_update(), id=event_id)
+                            event.title = title
+                            event.description = description
+                            event.start_time = start_time
+                            event.end_time = end_time
+                            event.user = user
+                            event.save()
+                            EventCategory.objects.filter(event=event).delete()
+                        else:
+                            event = CalendarEvent.objects.create(
+                                title=title, description=description,
+                                start_time=start_time, end_time=end_time, user=user
+                            )
 
-            EventCategory.objects.create(event=event, category=category)
-            print(f"✅ Assigned category: {category.name}")
+                        print(f"✅ Event processed: {event.title}")
 
-            if add_reminder == "yes" and reminder_time:
-                Reminder.objects.create(event=event, reminder_time=reminder_time)
-                print(f"✅ Reminder added for {event.title} at {reminder_time}")
+                        if category_option == "new" and new_category_name:
+                            category = Category.objects.create(name=new_category_name)
+                        else:
+                            category = get_object_or_404(Category, id=category_id)
 
-            return JsonResponse({"success": "Event added successfully!"})
+                        EventCategory.objects.create(event=event, category=category)
+                        print(f"✅ Assigned category: {category.name}")
+
+                        if add_reminder == "yes" and reminder_time:
+                            Reminder.objects.update_or_create(event=event, defaults={"reminder_time": reminder_time})
+                            print(f"✅ Reminder updated/created for {event.title} at {reminder_time}")
+
+                        return JsonResponse({"success": "Event saved successfully!"})
+
+                except OperationalError as e:
+                    if "database is locked" in str(e):
+                        print("🔁 Retrying after DB lock...")
+                        time.sleep(0.2)
+                        continue
+                    raise
 
         except Exception as e:
             print("❌ Error:", str(e))

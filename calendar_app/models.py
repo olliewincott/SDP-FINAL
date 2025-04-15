@@ -15,9 +15,11 @@ class CalendarEvent(models.Model):
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
+    color = models.CharField(max_length=7, default="#5ac8fa")  # e.g. HEX color like "#FF5733"
 
     def __str__(self):
         return self.name
+
 
 class EventCategory(models.Model):
     event = models.ForeignKey(CalendarEvent, on_delete=models.CASCADE)

@@ -16,7 +16,6 @@
   #calendar-container {
     height: calc(100vh - 150px);
     overflow-y: auto;
-    background-color: #1c1c1e;
     padding: 10px;
     border-radius: 10px;
     border: 1px solid rgba(255,255,255,0.05);
@@ -26,7 +25,6 @@
     height: 100%;
     max-width: 1400px;
     margin: 0 auto;
-    background-color: #1c1c1e;
     border-radius: 8px;
   }
 
@@ -34,14 +32,12 @@
     height: 100% !important;
   }
 
-  /* ✅ Make timegrid scrollable only, no layout shift */
   #dashboard-calendar .fc-timegrid-container {
     max-height: calc(100vh - 230px) !important;
     overflow-y: scroll !important;
-    margin-right: -1px; /* helps align with header when scrollbar appears */
+    margin-right: -1px;
   }
 
-  /* ✅ Sticky + aligned day headers */
   #dashboard-calendar .fc-col-header {
     position: sticky;
     top: 0;
@@ -59,7 +55,6 @@
     box-sizing: border-box;
   }
 
-  /* Force fixed layout to avoid misalignment with timegrid */
   .fc-scrollgrid,
   .fc-scrollgrid table {
     table-layout: fixed !important;
@@ -74,9 +69,24 @@
   .fc-day-today {
     background-color: rgba(255, 255, 255, 0.08) !important;
   }
+
+  .fc-event {
+    border: none;
+    color: white;
+    font-size: 0.85rem;
+  }
+
+  .fc-event:hover {
+    filter: brightness(1.1);
+    cursor: pointer;
+  }
+
+  /* 🧠 Improves spacing on overlapping events */
+  .fc-timegrid-event {
+    margin-left: 2px !important;
+    margin-right: 2px !important;
+  }
 </style>
-
-
 {% endblock head %}
 
 {% block content %}
@@ -123,31 +133,43 @@ document.addEventListener('DOMContentLoaded', function () {
   const calendar = new FullCalendar.Calendar(calendarEl, {
     themeSystem: 'bootstrap',
     initialView: 'timeGridWeek',
+    firstDay: 1, // 0 = Sunday, 1 = Monday
     height: '100%',
     editable: true,
     eventResizableFromStart: true,
-    headerToolbar: {
-      left: 'prev today next',
-      center: 'title',
-      right: 'dayGridMonth,timeGridWeek,timeGridDay'
-    },
-    allDaySlot: false,
-    nowIndicator: true,
     slotDuration: '00:30:00',
     slotLabelInterval: '01:00:00',
     slotMinTime: '00:00:00',
     slotMaxTime: '24:00:00',
     scrollTime: '06:00:00',
+    nowIndicator: true,
     dayHeaders: true,
+    allDaySlot: false,
+    headerToolbar: {
+      left: 'prev today next',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,timeGridDay'
+    },
 
     events: "{% url 'events_json' %}",
 
     eventContent(arg) {
-      return { html: `<span>${arg.event.title}</span>` };
-    },
+      const title = arg.event.title;
+      const bgColor = arg.event.backgroundColor || '#5ac8fa';
 
-    eventDidMount(info) {
-      // Tippy removed as requested
+      return {
+        html: `<div style="
+          background-color: ${bgColor};
+          color: #fff;
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          font-weight: 500;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        ">${title}</div>`
+      };
     },
 
     dateClick(info) {
