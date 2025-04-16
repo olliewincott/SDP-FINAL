@@ -1,44 +1,43 @@
 <!-- Reminder Modal -->
-<div class="modal fade" id="addReminderModal" tabindex="-1" aria-labelledby="addReminderModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <form id="addReminderForm" class="modal-content text-dark">
-      <!-- Modal Header -->
-      <div class="modal-header">
-        <h5 class="modal-title" id="addReminderModalLabel">Add New Reminder</h5>
-        <!-- Use the Bootstrap 5 close button -->
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
+<div id="addReminderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+  <form id="addReminderForm" class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-5 relative">
+    
+    <!-- Close Button -->
+    <button type="button" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-xl" data-close-modal>
+      &times;
+    </button>
 
-      <!-- Modal Body -->
-      <div class="modal-body">
-        <input type="hidden" name="user_id" value="{{ request.user.id }}">
-        <div class="mb-3">
-          <label for="reminder-event" class="form-label">Event</label>
-          <select class="form-control" id="reminder-event" name="event_id" required>
-            <option value="" disabled selected>Select an event</option>
-            {% for event in request.user.calendarevent_set.all %}
-              <option value="{{ event.id }}">{{ event.title }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="mb-3">
-          <label for="reminder-time" class="form-label">Reminder Time</label>
-          <input type="datetime-local" class="form-control" id="reminder-time" name="reminder_time" required>
-        </div>
-        <!-- Optionally, if you need a title input for reminder (for editing purposes), add it here -->
-        <!--
-        <div class="mb-3">
-          <label for="reminder-title" class="form-label">Reminder Title</label>
-          <input type="text" class="form-control" id="reminder-title" name="title">
-        </div>
-        -->
-      </div>
+    <!-- Header -->
+    <h3 id="addReminderModalLabel" class="text-lg font-semibold text-gray-800">Add New Reminder</h3>
 
-      <!-- Modal Footer -->
-      <div class="modal-footer">
-        <button type="submit" class="btn btn-primary">Create Reminder</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-      </div>
-    </form>
-  </div>
+    <!-- Hidden user ID -->
+    <input type="hidden" name="user_id" value="{{ request.user.id }}">
+
+    <!-- Event Select -->
+    <div>
+      <label for="reminder-event" class="block text-sm font-medium text-gray-700">Event</label>
+      <select id="reminder-event" name="event_id" required
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary focus:border-primary text-sm text-gray-900">
+        <option value="" disabled selected>Select an event</option>
+        {% for event in request.user.calendarevent_set.all %}
+          <option value="{{ event.id }}">{{ event.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Time -->
+    <div>
+      <label for="reminder-time" class="block text-sm font-medium text-gray-700">Reminder Time</label>
+      <input type="datetime-local" id="reminder-time" name="reminder_time" required
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary focus:border-primary text-sm text-gray-900">
+    </div>
+
+    <!-- Footer Buttons -->
+    <div class="flex justify-end gap-3 pt-3">
+      <button type="button" data-close-modal
+        class="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+      <button type="submit"
+        class="px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm">Create Reminder</button>
+    </div>
+  </form>
 </div>

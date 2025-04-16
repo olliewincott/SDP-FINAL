@@ -1,93 +1,29 @@
-<aside class="col-12 col-md-3 col-lg-2 p-3 sidebar" id="sidebar" style="border: 1px solid lightgrey; font-size: 14px;">
-  <div class="profile-section text-center mb-4">
-    <i class="fas fa-user-circle" style="font-size: 48px; margin: 10px 0;"></i>
-    <h4>{{ user.get_full_name|default:user.username }}</h4>
+<aside class="w-full md:w-64 h-screen bg-gray-800 text-white p-4 flex flex-col sticky top-0">
+  <div class="text-center mb-6">
+    <i class="fas fa-user-circle text-5xl mb-2 text-primary"></i>
+    <h4 class="text-lg font-semibold">{{ user.get_full_name|default:user.username }}</h4>
   </div>
 
-  <nav class="sidebar-nav">
-    <ul class="list-unstyled">
-      <!-- MAIN -->
-      <li class="mb-2 text-uppercase small font-weight-bold text-light">Main</li>
-      <li><a href="{% url 'dashboard' %}" class="text-light d-flex align-items-center"><i class="fas fa-home mr-2"></i> Dashboard</a></li>
-      <li><a href="{% url 'calendar' %}" class="text-light d-flex align-items-center"><i class="fas fa-calendar-alt mr-2"></i> Calendar</a></li>
+  <nav class="flex-grow">
+    <ul class="space-y-2">
+      <!-- Main -->
+      <li class="text-xs uppercase tracking-wide text-gray-400">Main</li>
+      <li><a href="{% url 'dashboard' %}" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-home"></i> Dashboard</a></li>
+      <li><a href="{% url 'calendar' %}" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-calendar-alt"></i> Calendar</a></li>
 
-      <!-- PERSONAL -->
-      <li class="mt-4 mb-2 text-uppercase small font-weight-bold text-light">Personal</li>
-      <li><a href="{% url 'wellbeing' %}" class="text-light d-flex align-items-center"><i class="fas fa-heartbeat mr-2"></i> Wellbeing</a></li>
-      <li><a href="{% url 'ai_assistant' %}" class="text-light d-flex align-items-center"><i class="fas fa-robot mr-2"></i> AI Assistant</a></li>
+      <!-- Personal -->
+      <li class="mt-6 text-xs uppercase tracking-wide text-gray-400">Personal</li>
+      <li><a href="{% url 'wellbeing' %}" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-heartbeat"></i> Wellbeing</a></li>
+      <li><a href="{% url 'ai_assistant' %}" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-robot"></i> AI Assistant</a></li>
 
-      <!-- PRODUCTIVITY -->
-      <li class="mt-4 mb-2 text-uppercase small font-weight-bold text-light">Productivity</li>
-      <li><a href="{% url 'tasks' %}" class="text-light d-flex align-items-center"><i class="fas fa-tasks mr-2"></i> Tasks</a></li>
-      <li><a href="{% url 'analytics' %}" class="text-light d-flex align-items-center"><i class="fas fa-chart-line mr-2"></i> Analytics</a></li>
+      <!-- Productivity -->
+      <li class="mt-6 text-xs uppercase tracking-wide text-gray-400">Productivity</li>
+      <li><a href="{% url 'tasks' %}" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-tasks"></i> Tasks</a></li>
+      <li><a href="{% url 'analytics' %}" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-chart-line"></i> Analytics</a></li>
 
-      <!-- SETTINGS -->
-      <li class="mt-4 mb-2 text-uppercase small font-weight-bold text-light">System</li>
-      <li><a href="#" class="text-light d-flex align-items-center"><i class="fas fa-cog mr-2"></i> Settings</a></li>
+      <!-- System -->
+      <li class="mt-6 text-xs uppercase tracking-wide text-gray-400">System</li>
+      <li><a href="#" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-cog"></i> Settings</a></li>
     </ul>
   </nav>
 </aside>
-
-<style>
-  /* Ensure sidebar spans the entire height of the page */
-  #sidebar {
-    position: sticky; /* Makes sure the sidebar stays in place */
-    top: 0; /* Keeps the sidebar at the top of the page */
-    height: 100vh; /* Ensures the sidebar spans the entire height of the screen */
-    display: flex;
-    flex-direction: column;
-    padding-bottom: 20px; /* Adds padding at the bottom to prevent overflow */
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2); /* Optional: Adds shadow for depth */
-  }
-
-  /* Ensuring the sidebar content fills available space */
-  .sidebar-nav {
-    flex-grow: 1;
-  }
-
-  /* Style for the profile section */
-  .profile-section {
-    margin-bottom: 20px;
-  }
-
-  /* Navigation styling to ensure readability */
-  .sidebar-nav ul {
-    list-style: none;
-    padding-left: 0;
-  }
-
-  .sidebar-nav ul li {
-    margin-bottom: 10px;
-  }
-
-  .sidebar-nav a {
-    text-decoration: none;
-    color: #d1d1d6;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-  }
-
-  .sidebar-nav a:hover {
-    color: #5AC8FA; /* Add color on hover */
-  }
-
-  /* Style the section headers */
-  .sidebar-nav .text-uppercase {
-    font-size: 12px;
-    font-weight: bold;
-  }
-
-  /* Style icons inside the sidebar */
-  .sidebar-nav i {
-    margin-right: 8px;
-  }
-
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    #sidebar {
-      position: relative;
-      height: auto; /* Let the sidebar adjust based on content on smaller screens */
-    }
-  }
-</style>

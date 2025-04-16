@@ -1,96 +1,92 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   {% block head %}
   <meta charset="UTF-8">
   <title>Dashboard - PLN AI</title>
 
-  <!-- External CSS -->
-  <!-- Updated to Bootstrap 5.3.2 CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#5AC8FA',
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
   <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
   {% endblock head %}
 </head>
-<body>
-  <div class="container-fluid main-dashboard-bg text-light" style="min-height: 100vh;">
-    <div class="row">
-      {% include 'includes/sidebar.html' %}
 
-      <main class="col-12 col-md-9 col-lg-10 py-3 dashboard-content">
-        <!-- Top Bar -->
-        <div class="row align-items-center mb-3 rounded p-3 top-bar">
-          <div class="col">
-            <h2 class="mb-0">Dashboard</h2>
-          </div>
-        </div>
+<body class="bg-gray-900 text-white font-sans min-h-screen">
+  <div class="flex">
+    {% include 'includes/sidebar.html' %}
 
-        <!-- Two-Column Layout -->
-        <div class="row d-flex align-items-stretch">
-          <!-- Left Column -->
-          <div class="col-lg-6 mb-3 d-flex flex-column">
-            <div class="mb-3">
-              <div class="widget calendar">
-                {% include 'includes/dailyview.html' with daily_view=True %}
-              </div>
-            </div>
-          </div>
+    <main class="flex-1 p-4 md:p-6">
+      <!-- Topbar -->
+      {% include 'includes/topbar.html' with page_title="Dashboard" %}
 
-          <!-- Right Column -->
-          <div class="col-lg-6 mb-3 d-flex flex-column">
-            <!-- Reminders -->
-            <div class="mb-3">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="widget-heading mb-0"><i class="fas fa-bell"></i> Reminders</h5>
-                <div class="dropdown">
-                  <button class="btn text-light p-0 border-0 bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-ellipsis-v fs-5"></i>
-                  </button>
-                  <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-sm">
-                    <li>
-                      <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addReminderModal">
-                        ➕ Add Reminder
-                      </a>
-                    </li>
-                    <li><a class="dropdown-item disabled" href="#">✏️ Edit Reminder</a></li>
-                    <li><a class="dropdown-item disabled" href="#">🗑️ Delete Reminder</a></li>
-                  </ul>
+      <!-- Grid Layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Daily Calendar -->
+        <section class="bg-white text-gray-900 p-4 rounded-xl shadow-md">
+          {% include 'includes/dailyview.html' with daily_view=True %}
+        </section>
+
+        <!-- Reminders + Tasks -->
+        <div class="space-y-6">
+          <!-- Reminders -->
+          <section class="bg-white text-gray-900 p-4 rounded-xl shadow-md relative">
+            <div class="flex justify-between items-center mb-3">
+              <h5 class="text-lg font-semibold"><i class="fas fa-bell mr-2 text-primary"></i> Reminders</h5>
+              <div class="relative">
+                <button class="text-primary text-xl hover:text-blue-600" data-dropdown-btn="reminder">
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="absolute right-0 mt-2 w-40 bg-white text-gray-800 rounded-lg shadow-lg hidden z-50" data-dropdown-menu="reminder">
+                  <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="add-reminder">➕ Add Reminder</button>
+                  <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="toggle-reminder-edit">✏️ Edit</button>
                 </div>
               </div>
-              <div class="widget reminders" id="reminder-list-wrapper">
-                {% include 'includes/reminders.html' with reminders=reminders %}
-              </div>
             </div>
+            <div id="reminder-list-wrapper">
+              {% include 'includes/reminders.html' with reminders=reminders %}
+            </div>
+          </section>
 
-            <!-- Tasks -->
-            <div>
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="widget-heading mb-0"><i class="fas fa-tasks"></i> Today’s Tasks</h5>
-                <div class="dropdown">
-                  <button class="btn text-light p-0 border-0 bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-ellipsis-v fs-5"></i>
-                  </button>
-                  <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow-sm">
-                    <li>
-                      <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addTaskModal">
-                        ➕ Add Task
-                      </a>
-                    </li>
-                    <li><a class="dropdown-item disabled" href="#">✏️ Edit Task</a></li>
-                    <li><a class="dropdown-item disabled" href="#">🗑️ Delete Task</a></li>
-                  </ul>
+          <!-- Tasks -->
+          <section class="bg-white text-gray-900 p-4 rounded-xl shadow-md relative">
+            <div class="flex justify-between items-center mb-3">
+              <h5 class="text-lg font-semibold"><i class="fas fa-tasks mr-2 text-primary"></i> Today's Tasks</h5>
+              <div class="relative">
+                <button class="text-primary text-xl hover:text-blue-600" data-dropdown-btn="task">
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="absolute right-0 mt-2 w-40 bg-white text-gray-800 rounded-lg shadow-lg hidden z-50" data-dropdown-menu="task">
+                  <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="add-task">➕ Add Task</button>
+                  <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="toggle-task-edit">✏️ Edit</button>
                 </div>
               </div>
-              <div class="widget tasks" id="task-list-wrapper">
-                {% include 'includes/daily_tasks.html' %}
-              </div>
             </div>
-
-          </div>
+            <div id="task-list-wrapper">
+              {% include 'includes/daily_tasks.html' %}
+            </div>
+          </section>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   </div>
 
   <!-- Modals -->
@@ -98,7 +94,7 @@
   {% include 'includes/add_reminder_modal.html' %}
   {% include 'includes/add_task_modal.html' %}
 
-  <!-- Global JS Vars -->
+  <!-- JS URLs -->
   <script>
     window.tasksJsonUrl = "{% url 'all_tasks_json' %}";
     window.updateTaskStatusUrl = "{% url 'update_task_status' %}";
@@ -108,18 +104,16 @@
     window.eventsJsonUrl = "{% url 'events_json' %}";
   </script>
 
-  <!-- Scripts -->
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+  <!-- Bootstrap JS for modal + FullCalendar bootstrap theme -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Load additional scripts -->
+  <!-- Scripts -->
   {% include 'includes/scripts.html' %}
-
   {% block page_scripts %}
     <script src="{% static 'js/dashboard.js' %}"></script>
     <script src="{% static 'js/tasks_modal.js' %}"></script>
     <script src="{% static 'js/reminder_modal.js' %}"></script>
   {% endblock %}
 </body>
+
 </html>

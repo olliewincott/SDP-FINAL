@@ -1,52 +1,66 @@
-<!-- Event Modal (Shared Across Views) -->
-<div class="modal fade" id="addEventModal" tabindex="-1" aria-labelledby="addEventModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <form id="addEventForm" class="modal-content text-dark">
-      <div class="modal-header">
-        <h5 class="modal-title" id="addEventModalLabel">Add New Event</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
+<!-- Event Modal -->
+<div id="addEventModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+  <form id="addEventForm" class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-5 relative">
 
-      <div class="modal-body">
-        <input type="hidden" name="id" id="event-id">
-        <input type="hidden" id="user-id" name="user_id" value="{{ request.user.id }}">
+    <!-- Close Button -->
+    <button type="button" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-xl" data-close-modal>
+      &times;
+    </button>
 
-        <div class="mb-3">
-          <label for="event-title" class="form-label">Title</label>
-          <input type="text" class="form-control" id="event-title" name="title" required>
-        </div>
+    <!-- Modal Title -->
+    <h3 id="addEventModalLabel" class="text-lg font-semibold text-black">Add New Event</h3>
 
-        <div class="mb-3">
-          <label for="event-description" class="form-label">Description</label>
-          <textarea class="form-control" id="event-description" name="description"></textarea>
-        </div>
+    <!-- Hidden Fields -->
+    <input type="hidden" id="event-id" name="id">
+    <input type="hidden" id="user-id" name="user_id" value="{{ request.user.id }}">
 
-        <div class="mb-3">
-          <label for="event-category" class="form-label">Category</label>
-          <select class="form-control" id="event-category" name="category_id" required>
-            <option value="" disabled selected>Select a category</option>
-            {% for category in categories %}
-              <option value="{{ category.id }}">{{ category.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
+    <!-- Title -->
+    <div>
+      <label for="event-title" class="block text-sm font-medium text-black">Title</label>
+      <input type="text" id="event-title" name="title" required
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary focus:border-primary text-sm text-black">
+    </div>
 
-        <div class="mb-3">
-          <label for="event-start" class="form-label">Start Time</label>
-          <input type="datetime-local" class="form-control" id="event-start" name="start_time" required>
-        </div>
+    <!-- Description -->
+    <div>
+      <label for="event-description" class="block text-sm font-medium text-black">Description</label>
+      <textarea id="event-description" name="description" rows="3"
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary focus:border-primary text-sm text-black"></textarea>
+    </div>
 
-        <div class="mb-3">
-          <label for="event-end" class="form-label">End Time</label>
-          <input type="datetime-local" class="form-control" id="event-end" name="end_time" required>
-        </div>
-      </div>
+    <!-- Category -->
+    <div>
+      <label for="event-category" class="block text-sm font-medium text-black">Category</label>
+      <select id="event-category" name="category_id" required
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary focus:border-primary text-sm text-black">
+        <option value="" disabled selected>Select a category</option>
+        {% for category in categories %}
+          <option value="{{ category.id }}">{{ category.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
-      <div class="modal-footer">
-        <button type="submit" class="btn btn-primary" id="saveEventBtn">Create Event</button>
-        <button type="button" class="btn btn-danger me-auto" id="calendarDeleteEventBtn" style="display: none;">Delete</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-      </div>
-    </form>
-  </div>
+    <!-- Start Time -->
+    <div>
+      <label for="event-start" class="block text-sm font-medium text-black">Start Time</label>
+      <input type="datetime-local" id="event-start" name="start_time" required
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary focus:border-primary text-sm text-black">
+    </div>
+
+    <!-- End Time -->
+    <div>
+      <label for="event-end" class="block text-sm font-medium text-black">End Time</label>
+      <input type="datetime-local" id="event-end" name="end_time" required
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary focus:border-primary text-sm text-black">
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="flex justify-end gap-3 pt-3">
+      <button type="button" class="px-4 py-2 text-sm text-black bg-gray-200 rounded-md hover:bg-gray-300" data-close-modal>Cancel</button>
+      <button type="submit" id="saveEventBtn"
+        class="px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm">Create Event</button>
+      <button type="button" id="calendarDeleteEventBtn"
+        class="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md shadow-sm hidden">Delete</button>
+    </div>
+  </form>
 </div>
