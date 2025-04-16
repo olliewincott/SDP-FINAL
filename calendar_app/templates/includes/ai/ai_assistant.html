@@ -1,160 +1,141 @@
 {% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% block head %}
+  <meta charset="UTF-8">
+  <title>AI Assistant – PLN AI</title>
 
-{% block head %}
-<!-- Core styles -->
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
-<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-
-<!-- Assistant Styles -->
-{% include 'includes/ai/ai_assistant_styles.html' %}
-{% endblock head %}
-
-{% block content %}
-<div class="container-fluid main-dashboard-bg text-light" style="min-height: 100vh;">
-  <div class="row">
-    {% include 'includes/sidebar.html' %}
-    <main class="col-12 col-md-9 col-lg-10 py-4 dashboard-content">
-      {% include 'includes/ai/ai_assistant_ui.html' %}
-    </main>
-  </div>
-</div>
-{% endblock %}
-
-{% block page_scripts %}
-<script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/botui/build/botui.min.js"></script>
-
-<script>
-  const botui = new BotUI('botui-app');
-  const conversationHistory = [];
-  let currentMode = 'event';  // 🔁 default mode
-
-  function getCSRFToken() {
-    const name = 'csrftoken';
-    const cookies = document.cookie.split(';');
-    for (let c of cookies) {
-      if (c.trim().startsWith(name + '=')) {
-        return c.trim().substring(name.length + 1);
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { primary: '#5AC8FA' },
+          fontFamily: { sans: ['Inter','sans-serif'] }
+        }
       }
     }
-    return '';
-  }
+  </script>
 
-  function sendToAssistant(message) {
-    if (!message.trim()) return;
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
 
-    conversationHistory.push({ role: 'user', content: message });
+  <!-- BotUI CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui-theme-default.css"/>
 
-    botui.message.add({
-      content: message,
-      human: true,
-      cssClass: 'human'
-    });
+  <!-- Custom Overrides -->
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+  {% endblock head %}
+</head>
 
-    document.getElementById('custom-user-input').value = "";
+<body class="bg-gray-900 text-white font-sans min-h-screen">
+  <div class="flex">
+    {% include 'includes/sidebar.html' %}
 
-    const typingHTML = `
-      <div class="typing-indicator">
-        <span></span><span></span><span></span>
-      </div>
-    `;
+    <main class="flex-1 p-4 md:p-6 space-y-6">
+      {% include 'includes/topbar.html' with page_title="AI Assistant" %}
 
-    botui.message.add({ type: 'html', content: typingHTML }).then(typingIndex => {
+      <section class="bg-white text-gray-900 rounded-xl shadow-md p-6">
+        {% include 'includes/ai/ai_assistant_ui.html' %}
+      </section>
+    </main>
+  </div>
+
+  {% block page_scripts %}
+  <!-- Vue.js (for BotUI) -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+
+  <!-- BotUI JS -->
+  <script src="https://cdn.jsdelivr.net/npm/botui/build/botui.min.js"></script>
+
+  <!-- Assistant Logic -->
+  <script>
+    const botui = new BotUI('botui-app');
+    const conversationHistory = [];
+    let currentMode = 'event';
+
+    function getCSRFToken() {
+      const name = 'csrftoken';
+      return document.cookie.split(';').reduce((v,c) => {
+        const [k, val] = c.trim().split('=');
+        return k===name ? decodeURIComponent(val) : v;
+      }, '');
+    }
+
+    function sendToAssistant(message) {
+      if (!message.trim()) return;
+      conversationHistory.push({ role:'user', content:message });
+      botui.message.add({ content:message, human:true, cssClass:'human' });
+      document.getElementById('custom-user-input').value = '';
+
+      // show typing indicator
+      let idx;
+      botui.message.add({ type:'html', content:`
+        <div class="inline-flex gap-2 px-4 py-2 bg-gray-800 rounded-full">
+          <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+          <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
+          <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></span>
+        </div>`
+      }).then(i => idx = i);
+
       fetch("{% url 'chatbot_response' %}", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCSRFToken()
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'X-CSRFToken':getCSRFToken()
         },
         body: JSON.stringify({
           message,
-          history: conversationHistory,
-          mode: currentMode  // 👈 include selected mode
+          history:conversationHistory,
+          mode:currentMode
         })
       })
-      .then(r => r.json())
-      .then(data => {
-        botui.message.remove(typingIndex);
-        const reply = data.response || "Sorry, I didn’t understand.";
-        conversationHistory.push({ role: 'assistant', content: reply });
-
-        botui.message.add({
-          content: reply
-        });
+      .then(r=>r.json())
+      .then(data=>{
+        botui.message.remove(idx);
+        const reply = data.response||"Sorry, I didn’t understand.";
+        conversationHistory.push({ role:'assistant', content:reply });
+        botui.message.add({ content:reply });
       })
-      .catch(() => {
-        botui.message.remove(typingIndex);
-        botui.message.add({ content: 'Oops! Something went wrong.' });
+      .catch(()=>{
+        botui.message.remove(idx);
+        botui.message.add({ content:'Oops! Something went wrong.' });
       });
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      botui.message.add({ content:'Hey there! Ready to plan your day?' });
+
+      document.getElementById('send-user-input')
+        .addEventListener('click',()=>{
+          sendToAssistant(document.getElementById('custom-user-input').value);
+        });
+
+      document.getElementById('custom-user-input')
+        .addEventListener('keypress',e=>{
+          if (e.key==='Enter') {
+            e.preventDefault();
+            sendToAssistant(e.target.value);
+          }
+        });
+
+      document.querySelectorAll('.suggested-actions span')
+        .forEach(btn=>{
+          btn.addEventListener('click',()=>{
+            const text = btn.textContent.trim();
+            currentMode = btn.dataset.mode||'event';
+            // highlight selected
+            document.querySelectorAll('.suggested-actions span')
+              .forEach(b=>b.classList.remove('bg-primary','text-white'));
+            btn.classList.add('bg-primary','text-white','rounded');
+            sendToAssistant(text);
+          });
+        });
     });
-  }
-
-  window.addEventListener('DOMContentLoaded', () => {
-    botui.message.add({ content: 'Hey there! Ready to plan your day?' });
-
-    document.getElementById('send-user-input').addEventListener('click', () => {
-      const message = document.getElementById('custom-user-input').value;
-      sendToAssistant(message);
-    });
-
-    document.getElementById('custom-user-input').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const message = e.target.value;
-        sendToAssistant(message);
-      }
-    });
-
-    document.querySelectorAll('.suggested-actions span').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const text = btn.textContent.trim();
-        const mode = btn.dataset.mode || 'event';
-        currentMode = mode;
-
-        // Optional: highlight selected mode
-        document.querySelectorAll('.suggested-actions span').forEach(b => b.classList.remove('active-mode'));
-        btn.classList.add('active-mode');
-
-        sendToAssistant(text);
-      });
-    });
-  });
-</script>
-
-<!-- Typing animation -->
-<style>
-  .typing-indicator {
-    display: inline-flex;
-    gap: 4px;
-    padding: 5px 12px;
-    background: #3a3a3c;
-    border-radius: 12px;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .typing-indicator span {
-    width: 6px;
-    height: 6px;
-    background-color: #d1d1d6;
-    border-radius: 50%;
-    animation: typing-bounce 1.2s infinite ease-in-out;
-  }
-
-  .typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
-  .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
-
-  @keyframes typing-bounce {
-    0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-    40% { transform: scale(1.4); opacity: 1; }
-  }
-
-  .suggested-actions span.active-mode {
-    background-color: #5ac8fa;
-    color: white;
-    border-radius: 8px;
-    padding: 4px 10px;
-  }
-</style>
-{% endblock %}
+  </script>
+  {% endblock %}
+</body>
+</html>
