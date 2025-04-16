@@ -1,97 +1,152 @@
 <style>
-  .progress-circle {
-    position: relative;
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 10px auto;
-    border-radius: 50%;
-    background-color: #1c1c1e;
-    border: 3px solid #66afe9;
+  .wellness-stats-container {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .wellness-card {
+    flex: 1;
+    min-width: 200px;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     transition: transform 0.2s ease;
   }
 
-  .progress-circle:active {
-    animation: pulse 0.3s ease;
+  .wellness-card:hover {
+    transform: translateY(-4px);
   }
 
-  .update-btn {
+  .wellness-card h6 {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: #333;
+  }
+
+  .progress-ring {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 12px;
+  }
+
+  .progress-ring svg {
+    transform: rotate(-90deg);
+  }
+
+  .progress-ring circle {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+  }
+
+  .progress-ring .bg {
+    stroke: #e0e0e0;
+  }
+
+  .progress-ring .progress {
+    stroke: #00bcd4;
+    transition: stroke-dashoffset 0.5s ease;
+  }
+
+  .progress-ring-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%);
+    font-size: 1.8rem;
+    color: #444;
+    z-index: 1;
+    cursor: pointer;
     background: none;
     border: none;
-    color: #66afe9;
-    font-size: 1.8rem;
-    cursor: pointer;
-    transition: transform 0.3s ease, color 0.3s ease;
   }
 
-  .update-btn:hover {
-    transform: scale(1.2);
-    color: #4a90e2;
+  .progress-ring-icon:hover {
+    color: #00acc1;
+    transform: translate(-50%, -55%) scale(1.2);
   }
 
-  .progress-circle span {
-    position: absolute;
-    bottom: -24px;
-    width: 100%;
-    font-size: 0.9rem;
-    color: #d1d1d6;
-    text-align: center;
+  .goal-text {
+    font-size: 0.85rem;
+    color: #666;
   }
 
-  .stat-card h6 {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
+  .progress-ring.complete .progress {
+    stroke: #4cd964 !important;
+    filter: drop-shadow(0 0 6px #4cd964);
+    animation: glowPulse 1.5s infinite ease-in-out;
   }
 
-  @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
+  @keyframes glowPulse {
+    0% { filter: drop-shadow(0 0 4px #4cd964); }
+    50% { filter: drop-shadow(0 0 10px #4cd964); }
+    100% { filter: drop-shadow(0 0 4px #4cd964); }
   }
 </style>
 
-<div class="d-flex justify-content-between mb-3">
+<div class="wellness-stats-container">
   <!-- Hydration -->
-  <div class="stat-card wellness-widget text-center p-2 mx-1 flex-fill" data-type="water">
+  <div class="wellness-card" data-type="water">
     <h6>💧 Hydration</h6>
-    <div class="progress-circle">
-      <button class="update-btn" data-goal="water">
+    <div class="progress-ring">
+      <svg width="100" height="100">
+        <circle class="bg" cx="50" cy="50" r="40" />
+        <circle class="progress" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="251.2" />
+      </svg>
+      <button class="progress-ring-icon update-btn" data-goal="water">
         <i class="fas fa-tint"></i>
       </button>
+    </div>
+    <div class="goal-text">
       <span id="water-progress">
         {{ wellness.water_intake|default:0 }}/{{ wellness.water_goal|default:8 }}
       </span>
     </div>
-    <small class="text-muted">Goal: {{ wellness.water_goal|default:8 }} cups</small>
   </div>
 
   <!-- Movement Breaks -->
-  <div class="stat-card wellness-widget text-center p-2 mx-1 flex-fill" data-type="breaks">
+  <div class="wellness-card" data-type="breaks">
     <h6>🧍‍♂️ Breaks</h6>
-    <div class="progress-circle">
-      <button class="update-btn" data-goal="breaks">
+    <div class="progress-ring">
+      <svg width="100" height="100">
+        <circle class="bg" cx="50" cy="50" r="40" />
+        <circle class="progress" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="251.2" />
+      </svg>
+      <button class="progress-ring-icon update-btn" data-goal="breaks">
         <i class="fas fa-walking"></i>
       </button>
+    </div>
+    <div class="goal-text">
       <span id="breaks-progress">
         {{ wellness.movement_breaks|default:0 }}/{{ wellness.breaks_goal|default:3 }}
       </span>
     </div>
-    <small class="text-muted">Goal: {{ wellness.breaks_goal|default:3 }} / day</small>
   </div>
 
   <!-- Healthy Meals -->
-  <div class="stat-card wellness-widget text-center p-2 mx-1 flex-fill" data-type="meals">
+  <div class="wellness-card" data-type="meals">
     <h6>🍽 Meals</h6>
-    <div class="progress-circle">
-      <button class="update-btn" data-goal="meals">
+    <div class="progress-ring">
+      <svg width="100" height="100">
+        <circle class="bg" cx="50" cy="50" r="40" />
+        <circle class="progress" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="251.2" />
+      </svg>
+      <button class="progress-ring-icon update-btn" data-goal="meals">
         <i class="fas fa-utensils"></i>
       </button>
+    </div>
+    <div class="goal-text">
       <span id="meals-progress">
         {{ wellness.healthy_meals|default:0 }}/{{ wellness.meals_goal|default:3 }}
       </span>
     </div>
-    <small class="text-muted">Goal: {{ wellness.meals_goal|default:3 }} / day</small>
   </div>
 </div>

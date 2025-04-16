@@ -19,14 +19,29 @@ from django.utils.dateparse import parse_datetime as django_parse_datetime
 from django.db import transaction, OperationalError
 import time
 
-
-
 # Set the OpenAI API key from settings (loaded from your .env file)
 openai.api_key = settings.OPENAI_API_KEY
 
 # -----------------------------
 # FullCalendar Integration Views
 # -----------------------------
+
+def calculate_streak(user):
+    today = date.today()
+    streak = 0
+
+    for i in range(0, 100):  # Check up to 100 days back
+        day = today - timedelta(days=i)
+        try:
+            wellness = DailyWellness.objects.get(user=user, date=day)
+            if wellness.goal_completed:
+                streak += 1
+            else:
+                break
+        except DailyWellness.DoesNotExist:
+            break
+
+    return streak
 
 @login_required
 def fullcalendar_view(request):
@@ -505,51 +520,96 @@ def daily_wellness_json(request):
     today = date.today()
     user = request.user
 
-    try:
-        wellness = DailyWellness.objects.get(user=user, date=today)
-        data = {
-            "water_intake": wellness.water_intake,
-            "movement_breaks": wellness.movement_breaks,
-            "healthy_meals": wellness.healthy_meals
-        }
-    except DailyWellness.DoesNotExist:
-        data = {
-            "water_intake": 0,
-            "movement_breaks": 0,
-            "healthy_meals": 0
-        }
+    wellness, _ = DailyWellness.objects.get_or_create(user=user, date=today)
+
+    data = {
+        "water_intake": wellness.water_intake,
+        "movement_breaks": wellness.movement_breaks,
+        "healthy_meals": wellness.healthy_meals,
+        "water_goal": wellness.water_goal,
+        "breaks_goal": wellness.breaks_goal,
+        "meals_goal": wellness.meals_goal,
+        "xp": getattr(wellness, "xp", 0),
+        "level": getattr(wellness, "level", 1)
+    }
 
     return JsonResponse(data)
 
+
+@csrf_exempt
 @login_required
 def increment_wellness(request):
-    from django.http import JsonResponse
-    from datetime import date
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        metric = data.get("metric")  # should be 'water', 'breaks', or 'meals'
+        user = request.user
+        today = date.today()
 
-    user = request.user
-    today = date.today()
-    stat_type = request.POST.get('type')
+        # Validate metric
+        if metric not in ['water', 'breaks', 'meals']:
+            return JsonResponse({"error": "Invalid metric."}, status=400)
 
-    if stat_type not in ['water', 'breaks', 'meals']:
-        return JsonResponse({'error': 'Invalid stat type'}, status=400)
+        # Map incoming metric to model fields
+        metric_fields = {
+            "water": "water_intake",
+            "breaks": "movement_breaks",
+            "meals": "healthy_meals"
+        }
 
-    wellness, _ = DailyWellness.objects.get_or_create(user=user, date=today)
+        field_name = metric_fields[metric]
 
-    if stat_type == 'water':
-        wellness.water_intake += 1
-    elif stat_type == 'breaks':
-        wellness.movement_breaks += 1
-    elif stat_type == 'meals':
-        wellness.healthy_meals += 1
+        # Get or create today's wellness record
+        wellness, _ = DailyWellness.objects.get_or_create(user=user, date=today)
 
-    wellness.save()
+        # Increment the metric value
+        setattr(wellness, field_name, getattr(wellness, field_name) + 1)
 
-    # Send updated stats back
-    return JsonResponse({
-        'water_intake': wellness.water_intake,
-        'movement_breaks': wellness.movement_breaks,
-        'healthy_meals': wellness.healthy_meals
-    })
+        # Handle XP and leveling
+        xp_gained = 10
+        xp_threshold = 100
+        leveled_up = False
+
+        if not hasattr(wellness, "xp"):
+            wellness.xp = 0
+        if not hasattr(wellness, "level"):
+            wellness.level = 1
+
+        wellness.xp += xp_gained
+        while wellness.xp >= xp_threshold:
+            wellness.xp -= xp_threshold
+            wellness.level += 1
+            leveled_up = True
+
+        # Update goal_completed if all goals met
+        if wellness.has_met_goals():
+            wellness.goal_completed = True
+
+        wellness.save()
+
+        # Calculate streak
+        streak = 0
+        streak_date = today
+
+        while True:
+            try:
+                entry = DailyWellness.objects.get(user=user, date=streak_date)
+                if not entry.goal_completed:
+                    break
+                streak += 1
+                streak_date -= timedelta(days=1)
+            except DailyWellness.DoesNotExist:
+                break
+
+        return JsonResponse({
+            "success": True,
+            "new_value": getattr(wellness, field_name),
+            "xp": wellness.xp,
+            "level": wellness.level,
+            "leveled_up": leveled_up,
+            "streak": streak
+        })
+
+    return JsonResponse({"error": "Invalid request method."}, status=400)
 
 @login_required
 def monthly_productivity_json(request):
@@ -657,9 +717,13 @@ def wellbeing_view(request):
         date=date.today()
     )
 
+    # Calculate current streak
+    streak = calculate_streak(request.user)
+
     return render(request, 'wellbeing.html', {
         'reminders': reminders,
         'wellness': wellness,
+        'wellness_streak': streak
     })
 
 @login_required
@@ -905,3 +969,5 @@ def update_wellness_goals(request):
         return JsonResponse({"success": True, "message": "Goals updated!"})
 
     return JsonResponse({"success": False, "error": "Invalid request"}, status=400)
+
+

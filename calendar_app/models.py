@@ -64,10 +64,22 @@ class DailyWellness(models.Model):
     movement_breaks = models.IntegerField(default=0)
     healthy_meals = models.IntegerField(default=0)
 
-    # User-set goals
-    water_goal = models.IntegerField(default=8)  # Default: 8 glasses
-    breaks_goal = models.IntegerField(default=3)  # Default: 3 breaks
-    meals_goal = models.IntegerField(default=3)  # Default: 3 healthy meals
+    # Goals
+    water_goal = models.IntegerField(default=8)
+    breaks_goal = models.IntegerField(default=3)
+    meals_goal = models.IntegerField(default=3)
+
+    # New features
+    goal_completed = models.BooleanField(default=False)  # for streaks
+    level = models.IntegerField(default=1)               # for gamification
+    xp = models.IntegerField(default=0)                  # experience points
+
+    def has_met_goals(self):
+        return (
+            self.water_intake >= self.water_goal and
+            self.movement_breaks >= self.breaks_goal and
+            self.healthy_meals >= self.meals_goal
+        )
 
     def __str__(self):
         return f"{self.user.username} - {self.date}"
