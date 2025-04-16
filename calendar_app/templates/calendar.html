@@ -32,32 +32,26 @@
     height: 100% !important;
   }
 
-  #dashboard-calendar .fc-timegrid-container {
+  .fc-timegrid-container {
     max-height: calc(100vh - 230px) !important;
     overflow-y: scroll !important;
     margin-right: -1px;
   }
 
-  #dashboard-calendar .fc-col-header {
+  .fc-col-header {
     position: sticky;
     top: 0;
     z-index: 10;
     background-color: #2c2c2e;
   }
 
-  #dashboard-calendar .fc-col-header-cell {
+  .fc-col-header-cell {
     padding: 10px;
     font-weight: 600;
     background-color: #2c2c2e;
     color: #f1f1f1;
     border-bottom: 1px solid rgba(255,255,255,0.1);
     text-align: center;
-    box-sizing: border-box;
-  }
-
-  .fc-scrollgrid,
-  .fc-scrollgrid table {
-    table-layout: fixed !important;
   }
 
   .fc-timegrid-slot-label {
@@ -81,7 +75,6 @@
     cursor: pointer;
   }
 
-  /* 🧠 Improves spacing on overlapping events */
   .fc-timegrid-event {
     margin-left: 2px !important;
     margin-right: 2px !important;
@@ -128,12 +121,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const form = document.getElementById('addEventForm');
   const deleteBtn = document.getElementById('calendarDeleteEventBtn');
   const eventIdInput = document.getElementById('event-id');
+  const modalTitle = document.getElementById('addEventModalLabel');
+  const saveBtn = document.getElementById('saveEventBtn');
   let activeEventId = null;
 
   const calendar = new FullCalendar.Calendar(calendarEl, {
     themeSystem: 'bootstrap',
     initialView: 'timeGridWeek',
-    firstDay: 1, // 0 = Sunday, 1 = Monday
+    firstDay: 1,
     height: '100%',
     editable: true,
     eventResizableFromStart: true,
@@ -154,49 +149,49 @@ document.addEventListener('DOMContentLoaded', function () {
     events: "{% url 'events_json' %}",
 
     eventContent(arg) {
-      const title = arg.event.title;
       const bgColor = arg.event.backgroundColor || '#5ac8fa';
-
       return {
         html: `<div style="
           background-color: ${bgColor};
-          color: #fff;
+          color: white;
           padding: 4px 8px;
           border-radius: 6px;
           font-size: 0.85rem;
-          font-weight: 500;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-        ">${title}</div>`
+        ">${arg.event.title}</div>`
       };
-    },
-
-    dateClick(info) {
-      form.reset();
-      activeEventId = null;
-      eventIdInput.value = '';
-      deleteBtn.style.display = 'none';
-
-      const start = new Date(info.date);
-      const end = new Date(start.getTime() + 30 * 60000);
-      form.querySelector('#event-start').value = start.toISOString().slice(0, 16);
-      form.querySelector('#event-end').value = end.toISOString().slice(0, 16);
-
-      eventModal.show();
     },
 
     eventClick(info) {
       const event = info.event;
       activeEventId = event.id;
 
-      form.querySelector('#event-title').value = event.title;
-      form.querySelector('#event-description').value = event.extendedProps.description || '';
-      form.querySelector('#event-start').value = event.start.toISOString().slice(0, 16);
-      form.querySelector('#event-end').value = event.end ? event.end.toISOString().slice(0, 16) : '';
+      form.reset();
+      document.getElementById('event-title').value = event.title;
+      document.getElementById('event-description').value = event.extendedProps.description || '';
+      document.getElementById('event-start').value = formatDateTimeLocal(event.start);
+      document.getElementById('event-end').value = event.end ? formatDateTimeLocal(event.end) : '';
+      document.getElementById('event-category').value = event.extendedProps.category_id || '';
       eventIdInput.value = event.id;
 
       deleteBtn.style.display = 'inline-block';
+      modalTitle.textContent = 'Update Event';
+      saveBtn.textContent = 'Update Event';
+      eventModal.show();
+    },
+
+    dateClick(info) {
+      form.reset();
+      activeEventId = null;
+      eventIdInput.value = '';
+      document.getElementById('event-start').value = formatDateTimeLocal(info.date);
+      document.getElementById('event-end').value = formatDateTimeLocal(new Date(info.date.getTime() + 30 * 60000));
+
+      deleteBtn.style.display = 'none';
+      modalTitle.textContent = 'Add New Event';
+      saveBtn.textContent = 'Create Event';
       eventModal.show();
     },
 
@@ -270,6 +265,11 @@ document.addEventListener('DOMContentLoaded', function () {
       alert("Server error.");
       info.revert();
     });
+  }
+
+  function formatDateTimeLocal(date) {
+    return new Date(date.getTime() - (date.getTimezoneOffset() * 60000))
+      .toISOString().slice(0, 16);
   }
 
   function getCSRFToken() {

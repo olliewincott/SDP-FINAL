@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 import json
 import openai
 from django.conf import settings
-from .models import CalendarEvent, Reminder, Category, EventCategory, Task, DailyWellness, MoodEntry, Category
+from .models import CalendarEvent, Reminder, Category, EventCategory, Task, DailyWellness, MoodEntry, Category, DailyWellness
 from datetime import datetime, timedelta, date
 import re
 from django.contrib.auth.decorators import login_required
@@ -649,11 +649,17 @@ def ai_assistant_view(request):
 
 @login_required
 def wellbeing_view(request):
-    # Optionally fetch any data you'd like to display
-    reminders = Reminder.objects.filter(user=request.user) if request.user.is_authenticated else []
-    
+    reminders = Reminder.objects.filter(user=request.user)
+
+    # Get or create today's wellness record
+    wellness, created = DailyWellness.objects.get_or_create(
+        user=request.user,
+        date=date.today()
+    )
+
     return render(request, 'wellbeing.html', {
         'reminders': reminders,
+        'wellness': wellness,
     })
 
 @login_required
@@ -786,23 +792,43 @@ def delete_reminder(request, reminder_id):
 @csrf_exempt
 @login_required
 def edit_reminder(request, reminder_id):
-    if request.method == "POST":
+    try:
+        reminder = Reminder.objects.get(pk=reminder_id)
+    except Reminder.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Reminder not found'}, status=404)
+    
+    # Update the event field using the posted event_id.
+    event_id = request.POST.get('event_id')
+    if event_id:
         try:
-            reminder = Reminder.objects.get(id=reminder_id, user=request.user)
-            event_id = request.POST.get('event_id')
-            reminder_time = request.POST.get('reminder_time')
-
-            if event_id:
-                reminder.event_id = event_id
-            if reminder_time:
-                reminder.reminder_time = reminder_time
-            reminder.save()
-
-            return JsonResponse({'success': True})
-        except Reminder.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Reminder not found'})
-    return JsonResponse({'success': False, 'error': 'Invalid request'})
-
+            reminder.event_id = int(event_id)
+        except ValueError:
+            return JsonResponse({'success': False, 'error': 'Invalid event id'}, status=400)
+    
+    # Update the reminder_time field.
+    reminder_time_str = request.POST.get('reminder_time')
+    if reminder_time_str:
+        try:
+            # Parse the ISO formatted string to a naive datetime.
+            naive_dt = datetime.fromisoformat(reminder_time_str)
+            # Convert to an aware datetime using the default timezone.
+            reminder.reminder_time = timezone.make_aware(naive_dt)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f'Invalid reminder time: {str(e)}'}, status=400)
+    
+    try:
+        reminder.save()
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    return JsonResponse({
+        'success': True,
+        'reminder': {
+            'id': reminder.id,
+            'event_id': reminder.event_id,
+            'reminder_time': reminder.reminder_time.isoformat()
+        }
+    })
 
 @csrf_exempt
 @login_required
@@ -815,3 +841,67 @@ def delete_task(request, task_id):
         except Task.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Task not found.'})
     return JsonResponse({'success': False, 'error': 'Invalid request method.'})
+
+@csrf_exempt
+@login_required
+def edit_task(request, task_id):
+    try:
+        task = Task.objects.get(pk=task_id)
+    except Task.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+    
+    # Update task fields. Make sure the form names match the model field names.
+    task.title = request.POST.get('title', task.title)
+    task.description = request.POST.get('description', task.description)
+    
+    # If you expect the date as an ISO formatted string, parse it into a Python datetime.
+    due_date = request.POST.get('due_date')
+    if due_date:
+        from datetime import datetime
+        try:
+            task.due_date = datetime.fromisoformat(due_date)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f'Invalid due date: {str(e)}'}, status=400)
+
+    try:
+        task.save()
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+    # Return the updated task data
+    return JsonResponse({
+        'success': True,
+        'task': {
+            'id': task.id,
+            'title': task.title,
+            'description': task.description,
+            'due_date': task.due_date.isoformat() if task.due_date else None,
+        }
+    })
+
+@csrf_exempt
+@login_required
+def update_wellness_goals(request):
+    if request.method == "POST":
+        print("✅ Received POST to update_wellness_goals")
+        print("👉 POST data:", request.POST)
+
+        user = request.user
+        today = date.today()
+        water_goal = request.POST.get("water_goal")
+        breaks_goal = request.POST.get("breaks_goal")
+        meals_goal = request.POST.get("meals_goal")
+
+        wellness, created = DailyWellness.objects.get_or_create(user=user, date=today)
+
+        if water_goal is not None:
+            wellness.water_goal = int(water_goal)
+        if breaks_goal is not None:
+            wellness.breaks_goal = int(breaks_goal)
+        if meals_goal is not None:
+            wellness.meals_goal = int(meals_goal)
+
+        wellness.save()
+        return JsonResponse({"success": True, "message": "Goals updated!"})
+
+    return JsonResponse({"success": False, "error": "Invalid request"}, status=400)

@@ -7,7 +7,7 @@
       >
         <!-- Left: Bell icon + Title -->
         <div class="d-flex align-items-center">
-          <i class="fas fa-bell mr-2 text-info reminder-icon"></i>
+          <i class="fas fa-bell me-2 text-info reminder-icon"></i>
           <span class="font-weight-semibold">{{ reminder.event.title }}</span>
         </div>
 
@@ -40,7 +40,7 @@
     {% endfor %}
   {% else %}
     <li class="list-group-item bg-dark text-muted border-0 rounded shadow-sm px-3 py-2 d-flex align-items-center">
-      <i class="fas fa-info-circle mr-2 text-secondary"></i>
+      <i class="fas fa-info-circle me-2 text-secondary"></i>
       <span>No reminders for today.</span>
     </li>
   {% endif %}

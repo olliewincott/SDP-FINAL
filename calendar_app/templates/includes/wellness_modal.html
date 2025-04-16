@@ -1,0 +1,36 @@
+<!-- includes/wellness_modal.html -->
+<div class="modal fade" id="wellnessGoalsModal" tabindex="-1" aria-labelledby="wellnessGoalsLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form id="wellnessGoalsForm" class="modal-content text-dark">
+        <div class="modal-header">
+          <h5 class="modal-title" id="wellnessGoalsLabel">Update Wellness Goals</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+  
+        <div class="modal-body">
+          <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+  
+          <div class="mb-3">
+            <label for="goal-water" class="form-label">Water Intake Goal (cups)</label>
+            <input type="number" class="form-control" id="goal-water" name="water_goal" min="1" value="{{ wellness.water_goal }}">
+          </div>
+  
+          <div class="mb-3">
+            <label for="goal-breaks" class="form-label">Movement Breaks Goal</label>
+            <input type="number" class="form-control" id="goal-breaks" name="breaks_goal" min="1" value="{{ wellness.breaks_goal }}">
+          </div>
+  
+          <div class="mb-3">
+            <label for="goal-meals" class="form-label">Healthy Meals Goal</label>
+            <input type="number" class="form-control" id="goal-meals" name="meals_goal" min="1" value="{{ wellness.meals_goal }}">
+          </div>
+        </div>
+  
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save Goals</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  

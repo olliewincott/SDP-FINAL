@@ -2,15 +2,16 @@
 <div class="modal fade" id="addReminderModal" tabindex="-1" aria-labelledby="addReminderModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <form id="addReminderForm" class="modal-content text-dark">
-      <!-- CSRF will be sent via JS -->
+      <!-- Modal Header -->
       <div class="modal-header">
         <h5 class="modal-title" id="addReminderModalLabel">Add New Reminder</h5>
+        <!-- Use the Bootstrap 5 close button -->
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
 
+      <!-- Modal Body -->
       <div class="modal-body">
         <input type="hidden" name="user_id" value="{{ request.user.id }}">
-
         <div class="mb-3">
           <label for="reminder-event" class="form-label">Event</label>
           <select class="form-control" id="reminder-event" name="event_id" required>
@@ -20,13 +21,20 @@
             {% endfor %}
           </select>
         </div>
-
         <div class="mb-3">
           <label for="reminder-time" class="form-label">Reminder Time</label>
           <input type="datetime-local" class="form-control" id="reminder-time" name="reminder_time" required>
         </div>
+        <!-- Optionally, if you need a title input for reminder (for editing purposes), add it here -->
+        <!--
+        <div class="mb-3">
+          <label for="reminder-title" class="form-label">Reminder Title</label>
+          <input type="text" class="form-control" id="reminder-title" name="title">
+        </div>
+        -->
       </div>
 
+      <!-- Modal Footer -->
       <div class="modal-footer">
         <button type="submit" class="btn btn-primary">Create Reminder</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

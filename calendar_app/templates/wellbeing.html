@@ -4,8 +4,6 @@
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
-
-<!-- Canvas Confetti Library -->
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <style>
@@ -13,7 +11,6 @@
     display: none !important;
   }
 
-  /* Section Titles */
   .section-title {
     font-size: 1.4rem;
     font-weight: 600;
@@ -21,7 +18,6 @@
     color: #fff;
   }
 
-  /* Widget Containers */
   .widget {
     background-color: #2c2c2e;
     border-radius: 10px;
@@ -47,7 +43,6 @@
     background-color: #3a3a3c;
   }
 
-  /* Mood Tracker */
   .mood-tracker .emoji {
     font-size: 2.2rem;
     cursor: pointer;
@@ -70,7 +65,6 @@
     display: inline-block;
   }
 
-  /* Circle Style for Goals */
   .wellness-circle {
     border: 2px solid #0af;
     border-radius: 50%;
@@ -84,7 +78,6 @@
     background-color: rgba(10, 170, 255, 0.1);
   }
 
-  /* Animation */
   @keyframes popIn {
     0% { transform: scale(0.85); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
@@ -101,6 +94,7 @@
 <div class="container-fluid main-dashboard-bg text-light" style="min-height: 100vh;">
   <div class="row">
     {% include 'includes/sidebar.html' %}
+
     <main class="col-12 col-md-9 col-lg-10 py-3 dashboard-content">
       {% include 'includes/topbar.html' with page_title="Wellbeing" %}
 
@@ -108,7 +102,12 @@
       <div class="row">
         <div class="col-12 mb-3">
           <div class="widget">
-            <h3 class="section-title">Today's Wellness Goals</h3>
+            <h3 class="section-title d-flex justify-content-between align-items-center">
+              Today's Wellness Goals
+              <button class="btn btn-sm btn-outline-info" id="editGoalsBtn">
+                <i class="fas fa-pen"></i>
+              </button>
+            </h3>
             {% include 'includes/wellness_stats.html' %}
           </div>
         </div>
@@ -127,15 +126,21 @@
   </div>
 </div>
 
-<!-- Global URLS for JavaScript -->
+<!-- Inject the wellness modal -->
+{% include 'includes/wellness_modal.html' %}
+{% include 'includes/scripts.html' %}
+
+<!-- JS Variables for Ajax -->
 <script>
   window.wellnessJsonUrl = "{% url 'daily_wellness_json' %}";
   window.incrementWellnessUrl = "{% url 'increment_wellness' %}";
+  window.updateWellnessGoalsUrl = "{% url 'update_wellness_goals' %}";
 </script>
 
-{% include 'includes/scripts.html' %}
-
 {% block page_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <script src="{% static 'js/wellbeing.js' %}"></script>
+<script src="{% static 'js/wellness_modal.js' %}"></script>
 {% endblock %}
 {% endblock %}

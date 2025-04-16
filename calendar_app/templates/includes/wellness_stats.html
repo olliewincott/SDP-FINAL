@@ -53,36 +53,45 @@
 </style>
 
 <div class="d-flex justify-content-between mb-3">
+  <!-- Hydration -->
   <div class="stat-card wellness-widget text-center p-2 mx-1 flex-fill" data-type="water">
     <h6>💧 Hydration</h6>
     <div class="progress-circle">
       <button class="update-btn" data-goal="water">
         <i class="fas fa-tint"></i>
       </button>
-      <span id="water-progress">--%</span>
+      <span id="water-progress">
+        {{ wellness.water_intake|default:0 }}/{{ wellness.water_goal|default:8 }}
+      </span>
     </div>
-    <small class="text-muted">Goal: 8 cups</small>
+    <small class="text-muted">Goal: {{ wellness.water_goal|default:8 }} cups</small>
   </div>
 
+  <!-- Movement Breaks -->
   <div class="stat-card wellness-widget text-center p-2 mx-1 flex-fill" data-type="breaks">
     <h6>🧍‍♂️ Breaks</h6>
     <div class="progress-circle">
       <button class="update-btn" data-goal="breaks">
         <i class="fas fa-walking"></i>
       </button>
-      <span id="breaks-progress">--%</span>
+      <span id="breaks-progress">
+        {{ wellness.movement_breaks|default:0 }}/{{ wellness.breaks_goal|default:3 }}
+      </span>
     </div>
-    <small class="text-muted">Goal: 3/day</small>
+    <small class="text-muted">Goal: {{ wellness.breaks_goal|default:3 }} / day</small>
   </div>
 
+  <!-- Healthy Meals -->
   <div class="stat-card wellness-widget text-center p-2 mx-1 flex-fill" data-type="meals">
     <h6>🍽 Meals</h6>
     <div class="progress-circle">
       <button class="update-btn" data-goal="meals">
         <i class="fas fa-utensils"></i>
       </button>
-      <span id="meals-progress">--%</span>
+      <span id="meals-progress">
+        {{ wellness.healthy_meals|default:0 }}/{{ wellness.meals_goal|default:3 }}
+      </span>
     </div>
-    <small class="text-muted">Goal: 3/day</small>
+    <small class="text-muted">Goal: {{ wellness.meals_goal|default:3 }} / day</small>
   </div>
 </div>

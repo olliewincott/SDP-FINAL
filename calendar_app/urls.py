@@ -1,6 +1,6 @@
 from django.urls import path, include
 from . import views
-from .views import db_test, add_event, delete_event, register  # Correct import with proper spacing
+from .views import db_test, add_event, delete_event, register, update_wellness_goals  # Correct import with proper spacing
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -37,6 +37,8 @@ urlpatterns = [
     path('delete_reminder/<int:reminder_id>/', views.delete_reminder, name='delete_reminder'),
     path('edit_reminder/<int:reminder_id>/', views.edit_reminder, name='edit_reminder'),
     path('delete_task/<int:task_id>/', views.delete_task, name='delete_task'),
+    path('edit_task/<int:task_id>/', views.edit_task, name='edit_task'),
+    path("update_wellness_goals/", update_wellness_goals, name="update_wellness_goals"),
 
 ]
 

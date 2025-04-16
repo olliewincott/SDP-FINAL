@@ -58,10 +58,19 @@ class Task(models.Model):
 class DailyWellness(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField(default=date.today)
-    water_intake = models.IntegerField(default=0)  # e.g., glasses of water
+
+    # Actual counts
+    water_intake = models.IntegerField(default=0)
     movement_breaks = models.IntegerField(default=0)
     healthy_meals = models.IntegerField(default=0)
 
+    # User-set goals
+    water_goal = models.IntegerField(default=8)  # Default: 8 glasses
+    breaks_goal = models.IntegerField(default=3)  # Default: 3 breaks
+    meals_goal = models.IntegerField(default=3)  # Default: 3 healthy meals
+
+    def __str__(self):
+        return f"{self.user.username} - {self.date}"
 
 class MoodEntry(models.Model):
     MOOD_CHOICES = [
