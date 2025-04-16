@@ -1,56 +1,75 @@
 {% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% block head %}
+  <meta charset="UTF-8">
+  <title>Analytics - PLN AI</title>
 
-{% block head %}
-<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
-<style>
-  /* Hide the navbar on this page */
-  nav.navbar {
-    display: none !important;
-  }
-  /* Optional: apply a max-height to all canvas elements if needed */
-  canvas {
-    max-height: 400px;
-  }
-</style>
-{% endblock head %}
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { primary: '#5AC8FA' },
+          fontFamily: { sans: ['Inter','sans-serif'] }
+        }
+      }
+    }
+  </script>
 
-{% block content %}
-<div class="container-fluid main-dashboard-bg text-light" style="min-height: 100vh;">
-  <div class="row">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+
+  <!-- Your dashboard overrides -->
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+
+  <style>
+    /* Hide any legacy navbar */
+    nav.navbar { display: none !important; }
+    /* Ensure canvas fits nicely */
+    canvas { max-height: 400px; width: 100%; }
+  </style>
+  {% endblock head %}
+</head>
+
+<body class="bg-gray-900 text-white font-sans min-h-screen">
+  <div class="flex">
     {% include 'includes/sidebar.html' %}
-    <main class="col-12 col-md-9 col-lg-10 py-3 dashboard-content">
+    <main class="flex-1 p-4 md:p-6">
       {% include 'includes/topbar.html' with page_title="Analytics" %}
-      <!-- Chart Section -->
-      <div class="row">
-        <!-- Monthly Completed Tasks Graph -->
-        <div class="col-12 mb-3">
+
+      <!-- Charts Grid -->
+      <div class="space-y-6">
+        <!-- Monthly Completed Tasks -->
+        <section class="bg-white text-gray-900 p-4 rounded-xl shadow-md">
+          <h5 class="text-lg font-semibold mb-3">Monthly Completed Tasks</h5>
           <div class="widget chart">
-            <h5>Monthly Completed Tasks</h5>
-            <canvas id="tasksChart" style="max-height: 400px;"></canvas>
+            <canvas id="tasksChart"></canvas>
           </div>
-        </div>
-        <!-- Monthly Wellness Stats Graph -->
-        <div class="col-12 mb-3">
+        </section>
+
+        <!-- Monthly Wellness Stats -->
+        <section class="bg-white text-gray-900 p-4 rounded-xl shadow-md">
+          <h5 class="text-lg font-semibold mb-3">Monthly Wellness Stats</h5>
           <div class="widget chart">
-            <h5>Monthly Wellness Stats</h5>
-            <canvas id="wellnessChart" style="max-height: 400px;"></canvas>
+            <canvas id="wellnessChart"></canvas>
           </div>
-        </div>
+        </section>
       </div>
     </main>
   </div>
-</div>
 
-<!-- Global URLs -->
-<script>
-  window.monthlyProductivityUrl = "{% url 'monthly_productivity_json' %}";
-  window.monthlyWellnessUrl = "{% url 'monthly_wellness_json' %}";
-</script>
+  <!-- Global URLs for your JS -->
+  <script>
+    window.monthlyProductivityUrl = "{% url 'monthly_productivity_json' %}";
+    window.monthlyWellnessUrl     = "{% url 'monthly_wellness_json' %}";
+  </script>
 
-{% include 'includes/scripts.html' %}
-{% block page_scripts %}
-<script src="{% static 'js/analytics.js' %}"></script>
-{% endblock %}
-{% endblock %}
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.0/dist/chart.umd.min.js"></script>
+  <!-- Your analytics logic -->
+  <script src="{% static 'js/analytics.js' %}"></script>
+</body>
+</html>
