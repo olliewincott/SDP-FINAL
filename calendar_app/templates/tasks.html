@@ -12,19 +12,33 @@
     tailwind.config = {
       theme: {
         extend: {
-          colors: {
-            primary: '#5AC8FA',
-          },
-          fontFamily: {
-            sans: ['Inter', 'sans-serif']
-          }
+          colors: { primary: '#5AC8FA' },
+          fontFamily: { sans: ['Inter','sans-serif'] }
         }
       }
     }
   </script>
 
   <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+  <style>
+    /* Optional: nice scrollbars */
+    .overflow-y-auto::-webkit-scrollbar {
+      width: 8px;
+    }
+    .overflow-y-auto::-webkit-scrollbar-thumb {
+      background-color: rgba(90,200,250,0.7);
+      border-radius: 4px;
+    }
+    .overflow-y-auto::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  </style>
   {% endblock head %}
 </head>
 <body class="bg-gray-900 text-white font-sans min-h-screen">
@@ -46,113 +60,86 @@
 
       <!-- Tasks Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Incomplete -->
-        <section class="bg-gray-800 p-4 rounded-lg shadow">
-          <h5 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Incomplete Tasks</h5>
-          <ul id="incomplete-tasks" class="space-y-2">
-            <li class="text-gray-400">Loading incomplete tasks…</li>
-          </ul>
+        <!-- Incomplete Tasks -->
+        <section class="bg-white text-gray-900 p-4 rounded-xl shadow-md flex flex-col">
+          <div class="flex justify-between items-center mb-3">
+            <h5 class="text-lg font-semibold">
+              <i class="fas fa-tasks mr-2 text-primary"></i> Incomplete Tasks
+            </h5>
+            <div class="relative">
+              <button class="text-gray-600 hover:text-gray-800" data-dropdown-btn="task">
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+              <div
+                class="absolute right-0 mt-2 w-40 bg-white text-gray-800 rounded-lg shadow-lg hidden z-50"
+                data-dropdown-menu="task"
+              >
+                <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="add-task">
+                  ➕ Add Task
+                </button>
+                <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="toggle-task-edit">
+                  ✏️ Edit
+                </button>
+              </div>
+            </div>
+          </div>
+          <!-- Scrollable container -->
+          <div class="overflow-y-auto max-h-[78vh] pr-2">
+            <ul id="incomplete-tasks" class="space-y-3">
+              <li class="text-gray-500">Loading incomplete tasks…</li>
+            </ul>
+          </div>
         </section>
 
-        <!-- Completed -->
-        <section class="bg-gray-800 p-4 rounded-lg shadow">
-          <h5 class="text-lg font-semibold mb-3 border-b border-gray-700 pb-2">Completed Tasks</h5>
-          <ul id="completed-tasks" class="space-y-2">
-            <li class="text-gray-400">Loading completed tasks…</li>
-          </ul>
+        <!-- Completed Tasks -->
+        <section class="bg-white text-gray-900 p-4 rounded-xl shadow-md flex flex-col">
+          <div class="flex justify-between items-center mb-3">
+            <h5 class="text-lg font-semibold">
+              <i class="fas fa-check-circle mr-2 text-primary"></i> Completed Tasks
+            </h5>
+            <div class="relative">
+              <button class="text-gray-600 hover:text-gray-800" data-dropdown-btn="task">
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+              <div
+                class="absolute right-0 mt-2 w-40 bg-white text-gray-800 rounded-lg shadow-lg hidden z-50"
+                data-dropdown-menu="task"
+              >
+                <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="add-task">
+                  ➕ Add Task
+                </button>
+                <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="toggle-task-edit">
+                  ✏️ Edit
+                </button>
+              </div>
+            </div>
+          </div>
+          <!-- Scrollable container -->
+          <div class="overflow-y-auto max-h-[78vh] pr-2">
+            <ul id="completed-tasks" class="space-y-3">
+              <li class="text-gray-500">Loading completed tasks…</li>
+            </ul>
+          </div>
         </section>
       </div>
     </main>
   </div>
 
+  <!-- Tailwind‑based Add/Edit Task Modal -->
+  <div id="addTaskModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
+    {% include 'includes/add_task_modal.html' %}
+  </div>
+
   <!-- Global URLs -->
   <script>
-    window.tasksJsonUrl = "{% url 'all_tasks_json' %}";
+    window.tasksJsonUrl        = "{% url 'all_tasks_json' %}";
+    window.createTaskUrl       = "{% url 'add_task' %}";
     window.updateTaskStatusUrl = "{% url 'update_task_status' %}";
   </script>
 
   {% include 'includes/scripts.html' %}
   {% block page_scripts %}
-  <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const filterInput = document.getElementById("task-filter");
-    let allTasks = [];
-
-    // Fetch all tasks
-    fetch(window.tasksJsonUrl)
-      .then(res => res.json())
-      .then(tasks => {
-        allTasks = tasks;
-        renderTasks(allTasks);
-      })
-      .catch(console.error);
-
-    // Filter as you type
-    filterInput.addEventListener('input', () => {
-      const term = filterInput.value.toLowerCase();
-      renderTasks(allTasks.filter(t => t.title.toLowerCase().includes(term)));
-    });
-
-    function renderTasks(tasks) {
-      const inc = document.getElementById("incomplete-tasks");
-      const comp = document.getElementById("completed-tasks");
-      inc.innerHTML = "";
-      comp.innerHTML = "";
-
-      const incomplete = tasks.filter(t => !t.completed);
-      const completed  = tasks.filter(t => t.completed);
-
-      if (incomplete.length === 0) {
-        inc.innerHTML = `<li class="text-gray-500">No incomplete tasks.</li>`;
-      } else {
-        incomplete.forEach(t => {
-          const li = document.createElement("li");
-          li.textContent = `${t.title} – Due: ${new Date(t.due_date).toLocaleDateString()}`;
-          li.className = "cursor-pointer bg-gray-700 px-4 py-2 rounded hover:bg-gray-600";
-          li.addEventListener('click', () => updateStatus(t.id, true));
-          inc.appendChild(li);
-        });
-      }
-
-      if (completed.length === 0) {
-        comp.innerHTML = `<li class="text-gray-500">No completed tasks.</li>`;
-      } else {
-        completed.forEach(t => {
-          const li = document.createElement("li");
-          li.textContent = `${t.title} – Due: ${new Date(t.due_date).toLocaleDateString()}`;
-          li.className = "cursor-pointer line-through opacity-70 bg-gray-700 px-4 py-2 rounded hover:bg-gray-600";
-          li.addEventListener('click', () => updateStatus(t.id, false));
-          comp.appendChild(li);
-        });
-      }
-    }
-
-    function updateStatus(id, completed) {
-      fetch(window.updateTaskStatusUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCSRFToken()
-        },
-        body: JSON.stringify({ task_id: id, completed })
-      })
-      .then(res => res.json())
-      .then(data => {
-        allTasks = allTasks.map(t => t.id === id ? { ...t, completed: data.completed } : t);
-        renderTasks(allTasks);
-      })
-      .catch(console.error);
-    }
-
-    function getCSRFToken() {
-      const name = 'csrftoken';
-      return document.cookie.split(';').reduce((r, c) => {
-        const [k,v] = c.trim().split('=');
-        return k===name ? decodeURIComponent(v) : r;
-      }, '');
-    }
-  });
-  </script>
+    <script src="{% static 'js/tasks.js' %}"></script>
   {% endblock %}
 </body>
 </html>

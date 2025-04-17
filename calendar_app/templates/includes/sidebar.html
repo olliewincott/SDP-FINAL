@@ -1,29 +1,74 @@
-<aside class="w-full md:w-64 h-screen bg-gray-800 text-white p-4 flex flex-col sticky top-0">
-  <div class="text-center mb-6">
-    <i class="fas fa-user-circle text-5xl mb-2 text-primary"></i>
-    <h4 class="text-lg font-semibold">{{ user.get_full_name|default:user.username }}</h4>
+{% load static %}
+<aside class="w-full md:w-64 h-screen bg-gray-800 text-white p-4 flex flex-col justify-between sticky top-0">
+
+  <!-- Top Section (Logo) -->
+  <div class="mb-6">
+    <div class="flex items-center mb-8 mt-2">
+      <!-- Left-aligned logo with hover pulse -->
+      <div class="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center hover:animate-pulse">
+        <i class="fas fa-bolt text-xl"></i>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex flex-col space-y-2">
+      <ul class="space-y-2">
+        <!-- Main -->
+        <li class="text-xs uppercase tracking-wide text-gray-400">Main</li>
+        <li>
+          <a href="{% url 'dashboard' %}" class="flex items-center gap-2 text-white hover:text-primary hover:bg-gray-700 rounded-md px-2 py-2 transition {% if request.path == '/dashboard/' %}bg-gray-700 text-primary{% endif %}">
+            <i class="fas fa-home"></i> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'calendar' %}" class="flex items-center gap-2 text-white hover:text-primary hover:bg-gray-700 rounded-md px-2 py-2 transition {% if request.path == '/calendar/' %}bg-gray-700 text-primary{% endif %}">
+            <i class="fas fa-calendar-alt"></i> Calendar
+          </a>
+        </li>
+
+        <!-- Personal -->
+        <li class="mt-6 text-xs uppercase tracking-wide text-gray-400">Personal</li>
+        <li>
+          <a href="{% url 'wellbeing' %}" class="flex items-center gap-2 text-white hover:text-primary hover:bg-gray-700 rounded-md px-2 py-2 transition {% if request.path == '/wellbeing/' %}bg-gray-700 text-primary{% endif %}">
+            <i class="fas fa-heartbeat"></i> Wellbeing
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'ai_assistant' %}" class="flex items-center gap-2 text-white hover:text-primary hover:bg-gray-700 rounded-md px-2 py-2 transition {% if request.path == '/ai-assistant/' %}bg-gray-700 text-primary{% endif %}">
+            <i class="fas fa-robot"></i> AI Assistant
+          </a>
+        </li>
+
+        <!-- Productivity -->
+        <li class="mt-6 text-xs uppercase tracking-wide text-gray-400">Productivity</li>
+        <li>
+          <a href="{% url 'tasks' %}" class="flex items-center gap-2 text-white hover:text-primary hover:bg-gray-700 rounded-md px-2 py-2 transition {% if request.path == '/tasks/' %}bg-gray-700 text-primary{% endif %}">
+            <i class="fas fa-tasks"></i> Tasks
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'analytics' %}" class="flex items-center gap-2 text-white hover:text-primary hover:bg-gray-700 rounded-md px-2 py-2 transition {% if request.path == '/analytics/' %}bg-gray-700 text-primary{% endif %}">
+            <i class="fas fa-chart-line"></i> Analytics
+          </a>
+        </li>
+
+        <!-- System -->
+        <li class="mt-6 text-xs uppercase tracking-wide text-gray-400">System</li>
+        <li>
+          <a href="#" class="flex items-center gap-2 text-white hover:text-primary hover:bg-gray-700 rounded-md px-2 py-2 transition">
+            <i class="fas fa-cog"></i> Settings
+          </a>
+        </li>
+      </ul>
+    </nav>
   </div>
 
-  <nav class="flex-grow">
-    <ul class="space-y-2">
-      <!-- Main -->
-      <li class="text-xs uppercase tracking-wide text-gray-400">Main</li>
-      <li><a href="{% url 'dashboard' %}" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-home"></i> Dashboard</a></li>
-      <li><a href="{% url 'calendar' %}" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-calendar-alt"></i> Calendar</a></li>
+  <!-- Bottom Section (User Profile) -->
+  <div class="mt-8">
+    <div class="border-t border-gray-700 pt-6 text-center">
+      <i class="fas fa-user-circle text-4xl mb-2 text-primary"></i>
+      <h4 class="text-lg font-semibold">{{ user.get_full_name|default:user.username }}</h4>
+    </div>
+  </div>
 
-      <!-- Personal -->
-      <li class="mt-6 text-xs uppercase tracking-wide text-gray-400">Personal</li>
-      <li><a href="{% url 'wellbeing' %}" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-heartbeat"></i> Wellbeing</a></li>
-      <li><a href="{% url 'ai_assistant' %}" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-robot"></i> AI Assistant</a></li>
-
-      <!-- Productivity -->
-      <li class="mt-6 text-xs uppercase tracking-wide text-gray-400">Productivity</li>
-      <li><a href="{% url 'tasks' %}" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-tasks"></i> Tasks</a></li>
-      <li><a href="{% url 'analytics' %}" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-chart-line"></i> Analytics</a></li>
-
-      <!-- System -->
-      <li class="mt-6 text-xs uppercase tracking-wide text-gray-400">System</li>
-      <li><a href="#" class="flex items-center gap-2 text-white hover:text-primary"><i class="fas fa-cog"></i> Settings</a></li>
-    </ul>
-  </nav>
 </aside>

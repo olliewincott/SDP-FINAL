@@ -1,172 +1,169 @@
 // static/js/analytics.js
 document.addEventListener('DOMContentLoaded', () => {
-  // ---- Chart.js global defaults for dark theme ----
-  Chart.defaults.color = '#d1d1d6';
-  Chart.defaults.font.family = 'Inter, sans-serif';
-  Chart.defaults.plugins.legend.labels.boxWidth = 12;
-
-  // ensure each canvas’s parent has a fixed height so Chart.js can fill it
-  const setCanvasHeight = (canvasId, heightPx) => {
-    const canvas = document.getElementById(canvasId);
-    if (canvas && canvas.parentNode) {
-      canvas.parentNode.style.height = heightPx;
+  //
+  // 1) Dynamically size the chart containers
+  //
+  const chartHeight = Math.floor(window.innerHeight * 0.47); // ~47% of viewport each
+  ['tasksChart', 'wellnessChart'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.parentNode) {
+      el.parentNode.style.height = `${chartHeight}px`;
     }
-    return canvas;
+  });
+
+  //
+  // 2) Helper to fetch & parse JSON
+  //
+  async function fetchJson(url) {
+    const res = await fetch(url);
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`HTTP ${res.status} from ${url}: ${txt}`);
+    }
+    return res.json();
+  }
+
+  //
+  // 3) Shared styling for axes/grid/tooltips
+  //
+  const axisStyle = {
+    labels:     { style: { colors: '#d1d1d6', fontSize: '12px' } },
+    axisBorder: { show: true, color: 'rgba(255,255,255,0.2)' },
+    axisTicks:  { show: true, color: 'rgba(255,255,255,0.2)' }
   };
 
-  // helper to get CSRF from cookies (for any POSTs you add)
-  function getCSRFToken() {
-    const name = 'csrftoken';
-    return document.cookie.split(';').reduce((token, c) => {
-      const [k,v] = c.trim().split('=');
-      return k === name ? decodeURIComponent(v) : token;
-    }, '');
+  //
+  // 4) Monthly Completed Tasks (Line)
+  //
+  async function drawTasksChart() {
+    let data;
+    try {
+      data = await fetchJson(window.monthlyProductivityUrl);
+    } catch (err) {
+      console.error('Tasks fetch error:', err);
+      return;
+    }
+    if (!Array.isArray(data) || !data.length) return;
+
+    const dates  = data.map(e => e.date);
+    const counts = data.map(e => e.count);
+
+    new ApexCharts(
+      document.querySelector('#tasksChart'),
+      {
+        chart: {
+          type:       'line',
+          height:     '100%',
+          background: 'transparent',
+          toolbar:    { show: false },
+          zoom:       { enabled: false },
+          animations: { enabled: true, easing: 'easeout', speed: 500 }
+        },
+        series: [{ name: 'Completed Tasks', data: counts }],
+        colors: ['#5AC8FA'],
+        stroke: { curve: 'smooth', width: 3 },
+        markers: { size: 5, hover: { size: 7 } },
+        grid:    { borderColor: 'rgba(255,255,255,0.1)', strokeDashArray: 4 },
+        xaxis: {
+          categories: dates,
+          tickAmount: Math.min(7, dates.length),
+          labels:     { rotate: -45, rotateAlways: true, ...axisStyle.labels },
+          axisBorder: axisStyle.axisBorder,
+          axisTicks:  axisStyle.axisTicks
+        },
+        yaxis: {
+          min:        0,
+          tickAmount: 5,
+          labels:     axisStyle.labels,
+          axisBorder: axisStyle.axisBorder,
+          axisTicks:  axisStyle.axisTicks
+        },
+        tooltip: {
+          theme: 'dark',
+          x:     { format: 'MMM dd' },
+          style: { fontSize: '13px' }
+        },
+        dataLabels: { enabled: false },
+        legend:     { show: false }
+      }
+    ).render();
   }
 
-  // ---- Monthly Completed Tasks ----
-  const tasksCanvas = setCanvasHeight('tasksChart', '300px');
-  if (tasksCanvas) {
-    fetch(window.monthlyProductivityUrl)
-      .then(r => r.json())
-      .then(data => {
-        if (!Array.isArray(data) || data.length === 0) {
-          console.warn('No productivity data');
-          return;
-        }
-        const labels = data.map(e => e.date);
-        const counts = data.map(e => e.count);
-        new Chart(tasksCanvas.getContext('2d'), {
-          type: 'line',
-          data: {
-            labels,
-            datasets: [{
-              label: 'Completed Tasks',
-              data: counts,
-              borderColor: '#5AC8FA',
-              backgroundColor: 'rgba(90,200,250,0.2)',
-              borderWidth: 2,
-              tension: 0.3,
-              pointRadius: 4,
-              pointBackgroundColor: '#5AC8FA',
-              fill: true
-            }]
+  //
+  // 5) Monthly Wellness Stats (Line chart with rounded values)
+  //
+  async function drawWellnessChart() {
+    let data;
+    try {
+      data = await fetchJson(window.monthlyWellnessUrl);
+    } catch (err) {
+      console.error('Wellness fetch error:', err);
+      return;
+    }
+    if (!Array.isArray(data) || !data.length) return;
+
+    // Convert month numbers to short names
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const categories = data.map(e => monthNames[e.month - 1] || `M${e.month}`);
+
+    // Series of actual averages
+    const hydration = data.map(e => e.avg_water);
+    const breaks    = data.map(e => e.avg_breaks);
+    const meals     = data.map(e => e.avg_meals);
+
+    new ApexCharts(
+      document.querySelector('#wellnessChart'),
+      {
+        chart: {
+          type:       'line',
+          height:     '100%',
+          background: 'transparent',
+          toolbar:    { show: false },
+          zoom:       { enabled: false },
+          animations: { enabled: true, easing: 'easeout', speed: 500 }
+        },
+        series: [
+          { name: 'Water Intake', data: hydration },
+          { name: 'Breaks Taken',  data: breaks    },
+          { name: 'Meals Eaten',   data: meals     }
+        ],
+        colors: ['#5AC8FA','#FF9F40','#4BC0C0'],
+        stroke: { curve: 'smooth', width: 3 },
+        markers: { size: 5, hover: { size: 7 } },
+        grid:    { borderColor: 'rgba(255,255,255,0.1)', strokeDashArray: 4 },
+        xaxis: {
+          categories,
+          labels:     axisStyle.labels,
+          axisBorder: axisStyle.axisBorder,
+          axisTicks:  axisStyle.axisTicks
+        },
+        yaxis: {
+          beginAtZero: true,
+          labels: {
+            ...axisStyle.labels,
+            formatter: val => val.toFixed(1)
           },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: { padding: 10 },
-            scales: {
-              x: {
-                ticks: { color: '#d1d1d6' },
-                grid: { color: 'rgba(255,255,255,0.2)' }
-              },
-              y: {
-                beginAtZero: true,
-                ticks: { color: '#d1d1d6' },
-                grid: { color: 'rgba(255,255,255,0.2)' }
-              }
-            }
-          }
-        });
-      })
-      .catch(err => {
-        console.error('Error loading monthly tasks data:', err);
-      });
-  }
-
-  // ---- Monthly Wellness Stats ----
-  const wellnessCanvas = setCanvasHeight('wellnessChart', '300px');
-  if (wellnessCanvas) {
-    fetch(window.monthlyWellnessUrl)
-      .then(r => r.json())
-      .then(data => {
-        if (!Array.isArray(data) || data.length === 0) {
-          console.warn('No wellness data');
-          return;
+          axisBorder: axisStyle.axisBorder,
+          axisTicks:  axisStyle.axisTicks
+        },
+        tooltip: {
+          theme: 'dark',
+          x:     { show: true },
+          y:     { formatter: val => val.toFixed(1) },
+          style: { fontSize: '13px' }
+        },
+        dataLabels: { enabled: false },
+        legend: {
+          position:        'bottom',
+          horizontalAlign: 'center',
+          labels:          { colors: '#d1d1d6' },
+          markers:         { width: 10, height: 10, radius: 2 }
         }
-        const labels       = data.map(e => `Month ${e.month}`);
-        const avgWater     = data.map(e => e.avg_water);
-        const targetWater  = data.map(e => e.target_water);
-        const avgBreaks    = data.map(e => e.avg_breaks);
-        const targetBreaks = data.map(e => e.target_breaks);
-        const avgMeals     = data.map(e => e.avg_meals);
-        const targetMeals  = data.map(e => e.target_meals);
-
-        new Chart(wellnessCanvas.getContext('2d'), {
-          type: 'bar',
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'Avg Water Intake',
-                data: avgWater,
-                backgroundColor: 'rgba(90,200,250,0.5)',
-                borderColor: '#5AC8FA',
-                borderWidth: 1
-              },
-              {
-                label: 'Target Water Intake',
-                data: targetWater,
-                type: 'line',
-                borderColor: '#5AC8FA',
-                borderWidth: 2,
-                fill: false,
-                pointRadius: 3
-              },
-              {
-                label: 'Avg Breaks',
-                data: avgBreaks,
-                backgroundColor: 'rgba(255,159,64,0.5)',
-                borderColor: '#FF9F40',
-                borderWidth: 1
-              },
-              {
-                label: 'Target Breaks',
-                data: targetBreaks,
-                type: 'line',
-                borderColor: '#FF9F40',
-                borderWidth: 2,
-                fill: false,
-                pointRadius: 3
-              },
-              {
-                label: 'Avg Meals',
-                data: avgMeals,
-                backgroundColor: 'rgba(75,192,192,0.5)',
-                borderColor: '#4BC0C0',
-                borderWidth: 1
-              },
-              {
-                label: 'Target Meals',
-                data: targetMeals,
-                type: 'line',
-                borderColor: '#4BC0C0',
-                borderWidth: 2,
-                fill: false,
-                pointRadius: 3
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: { padding: 10 },
-            scales: {
-              x: {
-                ticks: { color: '#d1d1d6' },
-                grid: { color: 'rgba(255,255,255,0.2)' }
-              },
-              y: {
-                beginAtZero: true,
-                ticks: { color: '#d1d1d6' },
-                grid: { color: 'rgba(255,255,255,0.2)' }
-              }
-            }
-          }
-        });
-      })
-      .catch(err => {
-        console.error('Error loading monthly wellness data:', err);
-      });
+      }
+    ).render();
   }
+
+  // invoke both
+  drawTasksChart();
+  drawWellnessChart();
 });
