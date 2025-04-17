@@ -1,139 +1,229 @@
-{% extends 'base.html' %}
 {% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FocusFlow AI – Welcome</title>
 
-{% block content %}
-<!-- Hero Section: Welcome to ADHD Planner -->
-<section class="hero-section text-center py-5">
-  <div class="container">
-    <!-- Banner Image -->
-    <h2 class="display-4">Welcome to PLN AI</h2>
-    <p class="lead">
-      PLN AI is a simple, intuitive platform designed to help you manage your daily tasks, set and track your goals, and monitor your mood throughout the day.
-    </p>
-    <p>
-      Our thoughtfully designed tools make it easier to structure your day, keep track of important deadlines, and stay motivated on your journey.
-    </p>
-    <img src="{% static 'images/ai.jpg' %}" alt="Planner Banner" class="img-fluid mb-4" style="width:100%; max-height:400px; object-fit:cover;">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { primary: '#5AC8FA' },
+          fontFamily: { sans: ['Inter', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
 
+  <style>
+    .animated-background {
+      background: linear-gradient(-45deg, #0f172a, #1e293b, #0f172a, #1e293b);
+      background-size: 400% 400%;
+      animation: gradientShift 20s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+    .fade-in.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+
+<body class="text-white font-sans min-h-screen flex flex-col animated-background">
+
+<!-- Header -->
+<header class="flex justify-between items-center py-6 px-8">
+  <div class="text-2xl font-bold">FocusFlow AI</div>
+  <div class="space-x-4">
+    <button onclick="openModal('login-modal')" class="text-primary hover:underline font-semibold">Login</button>
+    <button onclick="openModal('register-modal')" class="bg-primary hover:bg-blue-400 text-white font-semibold py-2 px-6 rounded-full transition shadow-md">
+      Create Account
+    </button>
   </div>
-</section>
+</header>
 
-<!-- Features Section -->
-<section class="container my-5">
-  <div class="row text-center">
-    <div class="col-md-4">
-      <div class="card feature-card">
-        <div class="card-body">
-          <h5 class="card-title">Task Management</h5>
-          <p class="card-text">
-            Effortlessly add and track your tasks so you never miss a deadline.
-          </p>
-        </div>
+<main class="flex-1">
+
+  <!-- Hero Section -->
+  <section class="text-center pt-32 pb-24 px-6 fade-in">
+    <h1 class="text-5xl md:text-7xl font-bold mb-8">Organize your day with FocusFlow AI</h1>
+    <p class="text-gray-300 max-w-2xl mx-auto mb-10 text-lg leading-relaxed">
+      Smarter planning, actionable insights, and daily balance — powered by intelligent tools built to boost your productivity.
+    </p>
+    <div class="flex justify-center gap-6">
+      <button onclick="openModal('register-modal')" class="bg-primary hover:bg-blue-400 text-white font-semibold py-3 px-8 rounded-full transition shadow-md">
+        Get Started
+      </button>
+      <button onclick="openModal('login-modal')" class="border border-primary text-primary hover:bg-primary hover:text-white font-semibold py-3 px-8 rounded-full transition shadow-md">
+        Login
+      </button>
+    </div>
+  </section>
+
+  <!-- Dashboard Overview -->
+  <section class="text-center fade-in px-6 pb-20">
+    <p class="text-gray-400 max-w-xl mx-auto mb-12 text-base">
+      See everything at a glance in your powerful personal dashboard.
+    </p>
+    <img src="{% static 'images/dashboard.jpg' %}" alt="Dashboard" class="rounded-3xl shadow-2xl mx-auto w-full max-w-5xl">
+    <p class="text-gray-400 mt-6 text-sm">Manage tasks, track progress, and stay organized effortlessly.</p>
+  </section>
+
+  <!-- Features -->
+  <section class="space-y-20 px-6">
+
+    <!-- AI Assistant -->
+    <div class="flex flex-col md:flex-row items-center gap-12 bg-gray-800 p-10 rounded-3xl fade-in">
+      <img src="{% static 'images/ai.jpg' %}" alt="AI Assistant" class="rounded-2xl shadow-lg w-full md:w-1/2">
+      <div class="text-center md:text-left">
+        <h2 class="text-4xl font-bold mb-4">🤖 Smart AI Assistant</h2>
+        <p class="text-gray-300 max-w-md">
+          Plan tasks, set reminders, and rearrange your schedule on-the-fly with a powerful conversational AI.
+        </p>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card feature-card">
-        <div class="card-body">
-          <h5 class="card-title">Goal Setting</h5>
-          <p class="card-text">
-            Define, set, and monitor your personal and professional goals.
-          </p>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card feature-card">
-        <div class="card-body">
-          <h5 class="card-title">Mood Tracker</h5>
-          <p class="card-text">
-            Keep a daily log of your mood and discover patterns that can help improve your wellbeing.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
 
-<!-- How It Works Section -->
-<section class="how-it-works-section text-center py-5">
-  <div class="container">
-    <h3 class="mb-4">How It Works</h3>
-    <p class="lead">
-      ADHD Planner combines task management, goal setting, and mood tracking into one seamless experience. Simply sign up, add your tasks, set your goals, and monitor your progress—all in one place.
+    <!-- Daily Planning -->
+    <div class="flex flex-col md:flex-row-reverse items-center gap-12 fade-in">
+      <img src="{% static 'images/howitworks.jpg' %}" alt="Planner" class="rounded-2xl shadow-lg w-full md:w-1/2">
+      <div class="text-center md:text-left">
+        <h2 class="text-4xl font-bold mb-4">🗓️ Seamless Daily Planning</h2>
+        <p class="text-gray-300 max-w-md">
+          Organize your schedule with drag-and-drop tasks, color-coded categories, and an intuitive calendar view.
+        </p>
+      </div>
+    </div>
+
+    <!-- Productivity Analytics -->
+    <div class="flex flex-col md:flex-row items-center gap-12 bg-gray-800 p-10 rounded-3xl fade-in">
+      <img src="{% static 'images/analytics.jpg' %}" alt="Analytics" class="rounded-2xl shadow-lg w-full md:w-1/2">
+      <div class="text-center md:text-left">
+        <h2 class="text-4xl font-bold mb-4">📈 Productivity Analytics</h2>
+        <p class="text-gray-300 max-w-md">
+          Track trends and unlock insights to optimize your workflow and reach your goals faster.
+        </p>
+      </div>
+    </div>
+
+    <!-- Wellness Tracker -->
+    <div class="flex flex-col md:flex-row-reverse items-center gap-12 fade-in">
+      <img src="{% static 'images/wellbeing.jpg' %}" alt="Wellbeing" class="rounded-2xl shadow-lg w-full md:w-1/2">
+      <div class="text-center md:text-left">
+        <h2 class="text-4xl font-bold mb-4">🧘 Wellness & Mood Tracking</h2>
+        <p class="text-gray-300 max-w-md">
+          Maintain a healthy balance. Track your mood, energy levels, and mental wellness day by day.
+        </p>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Final CTA -->
+  <section class="text-center py-32 px-6 fade-in">
+    <h3 class="text-4xl font-bold mb-8">Ready to upgrade your focus?</h3>
+    <p class="text-gray-400 max-w-xl mx-auto mb-10">
+      Create your account and experience smarter productivity today.
     </p>
-    <!-- Illustrative Image for How It Works -->
-    <img src="{% static 'images/howitworks.jpg' %}" alt="How It Works" class="img-fluid mt-4" style="width:100%; max-height:300px; object-fit:cover;">
-  </div>
-</section>
+    <div class="flex justify-center gap-6">
+      <button onclick="openModal('register-modal')" class="bg-primary hover:bg-blue-400 text-white font-semibold py-3 px-10 rounded-full transition shadow-lg">
+        Get Started
+      </button>
+    </div>
+  </section>
 
-<!-- Chatbot Section -->
-<section class="container text-center mb-5">
-  <h4 class="mb-4">Have a Question?</h4>
-  <p class="lead">
-    Our virtual assistant is here to help you get the most out of ADHD Planner. Just click the chat icon to get started.
-  </p>
-  <!-- The chatbot widget is triggered by the floating button -->
-</section>
+</main>
 
 <!-- Footer -->
-<footer class="footer text-center py-3">
-  &copy; 2025 Oliver Wincott. All rights reserved.
+<footer class="text-center py-8 text-gray-500 text-sm">
+  &copy; 2025 Oliver Wincott – FocusFlow AI. All rights reserved.
 </footer>
 
-<!-- Dark Mode Styling -->
-<style>
-  /* General Dark Mode Styles */
-  body {
-    background-color: #1c1c1e !important;
-    color: #d1d1d6 !important;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif;
-  }
+<!-- Modals -->
+{% csrf_token %}
+<div id="login-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 hidden z-50 transition-opacity duration-300">
+  <div class="modal-content bg-gray-800 p-8 rounded-2xl max-w-md w-full relative shadow-xl">
+    <button onclick="closeModal('login-modal')" class="absolute top-3 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+    <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
+    <form method="post" action="{% url 'login' %}">
+      {% csrf_token %}
+      <div class="mb-4">
+        <label class="block text-sm mb-1" for="login-username">Username</label>
+        <input type="text" name="username" id="login-username" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary" required>
+      </div>
+      <div class="mb-6">
+        <label class="block text-sm mb-1" for="login-password">Password</label>
+        <input type="password" name="password" id="login-password" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary" required>
+      </div>
+      <button type="submit" class="w-full bg-primary hover:bg-blue-400 text-white font-semibold py-2 rounded-full transition">Login</button>
+    </form>
+  </div>
+</div>
 
-  /* Hero Section */
-  .hero-section {
-    background-color: #2c2c2e;
-    padding: 50px 0;
-    border-radius: 8px;
-  }
+<div id="register-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 hidden z-50 transition-opacity duration-300">
+  <div class="modal-content bg-gray-800 p-8 rounded-2xl max-w-md w-full relative shadow-xl">
+    <button onclick="closeModal('register-modal')" class="absolute top-3 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+    <h2 class="text-2xl font-bold mb-6 text-center">Create your Account</h2>
+    <form method="post" action="{% url 'register' %}">
+      {% csrf_token %}
+      <div class="mb-4">
+        <label class="block text-sm mb-1" for="register-username">Username</label>
+        <input type="text" name="username" id="register-username" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary" required>
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm mb-1" for="register-password1">Password</label>
+        <input type="password" name="password1" id="register-password1" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary" required>
+      </div>
+      <div class="mb-6">
+        <label class="block text-sm mb-1" for="register-password2">Confirm Password</label>
+        <input type="password" name="password2" id="register-password2" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary" required>
+      </div>
+      <button type="submit" class="w-full bg-primary hover:bg-blue-400 text-white font-semibold py-2 rounded-full transition">Create Account</button>
+    </form>
+  </div>
+</div>
 
-  /* Features Cards */
-  .feature-card {
-    background-color: #2c2c2e;
-    border: 1px solid #3a3a3c;
-    color: #d1d1d6;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(255, 255, 255, 0.05);
-    transition: transform 0.3s ease-in-out;
-  }
-  .feature-card:hover {
-    transform: scale(1.03);
-  }
+<!-- Scripts -->
+<script>
+function openModal(id) {
+  const modal = document.getElementById(id);
+  modal.classList.remove('hidden');
+}
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  setTimeout(() => modal.classList.add('hidden'), 200);
+}
 
-  /* How It Works Section */
-  .how-it-works-section {
-    background-color: #2c2c2e;
-    padding: 50px 0;
-    border-radius: 8px;
-  }
+// Animate sections on scroll
+document.addEventListener('DOMContentLoaded', function() {
+  const faders = document.querySelectorAll('.fade-in');
+  const appearOptions = { threshold: 0.2, rootMargin: "0px 0px -50px 0px" };
+  const appearOnScroll = new IntersectionObserver(function(entries, observer) {
+    entries.forEach((entry, index) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.classList.add('show');
+        }, index * 150);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, appearOptions);
+  faders.forEach(fader => appearOnScroll.observe(fader));
+});
+</script>
 
-  /* Footer */
-  .footer {
-    background-color: #2c2c2e;
-    color: #d1d1d6;
-    border-top: 1px solid #3a3a3c;
-  }
-
-  /* Button Styling */
-  .btn {
-    border-radius: 8px;
-    padding: 12px 20px;
-  }
-  .btn-primary {
-    background-color: #007aff !important;
-    border: none;
-  }
-  .btn-primary:hover {
-    background-color: #005ecb !important;
-  }
-</style>
-{% endblock %}
+</body>
+</html>

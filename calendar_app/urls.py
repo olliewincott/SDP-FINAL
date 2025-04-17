@@ -39,6 +39,9 @@ urlpatterns = [
     path('delete_task/<int:task_id>/', views.delete_task, name='delete_task'),
     path('edit_task/<int:task_id>/', views.edit_task, name='edit_task'),
     path("update_wellness_goals/", update_wellness_goals, name="update_wellness_goals"),
+    path('chat-history/', views.get_chat_history, name='get_chat_history'), 
+    path('clear-chat-history/', views.clear_chat_history, name='clear_chat_history'),  # ✅ New
+
 
 ]
 

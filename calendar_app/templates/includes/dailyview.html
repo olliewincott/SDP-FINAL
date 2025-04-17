@@ -133,16 +133,11 @@
         return { html: `<span>${arg.event.title}</span>` };
       },
       eventDidMount: function (info) {
-        if (info.event.extendedProps.description) {
-          tippy(info.el, {
-            content: `<strong>${info.event.title}</strong><br>${info.event.extendedProps.description}`,
-            allowHTML: true,
-            theme: 'light-border',
-            placement: 'top',
-            animation: 'shift-away',
-            delay: [100, 50],
-          });
+        // 🔥 REMOVE any default title attributes to prevent default browser tooltips
+        if (info.el.hasAttribute('title')) {
+          info.el.removeAttribute('title');
         }
+        // ❌ Tippy.js tooltips are now completely removed
       },
       eventDrop: updateEvent,
       eventResize: updateEvent,

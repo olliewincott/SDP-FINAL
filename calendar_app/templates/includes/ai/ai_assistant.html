@@ -25,43 +25,13 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui-theme-default.css"/>
 
   <style>
-    body {
-      background-color: #111827;
-      font-family: 'Inter', sans-serif;
-    }
-    .botui-container {
-      background-color: transparent !important;
-      border: none !important;
-      padding: 0 !important;
-      font-size: 0.95rem;
-    }
-    .botui-message-content {
-      max-width: 80%;
-      padding: 10px 16px;
-      border-radius: 16px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      animation: fadeIn 0.4s ease both;
-    }
-    .botui-message-content.human {
-      background-color: #5AC8FA;
-      color: white;
-      align-self: flex-end;
-    }
-    .botui-message-content.bot {
-      background-color: #f1f5f9;
-      color: #111827;
-    }
-    .botui-actions-text-input {
-      background-color: #f9fafb;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      padding: 8px 12px;
-      color: #111827;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
+    body { background-color: #111827; font-family: 'Inter', sans-serif; }
+    .botui-container { background: transparent !important; border: none !important; padding: 0 !important; font-size: 0.95rem; }
+    .botui-message-content { max-width: 80%; padding: 10px 16px; border-radius: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); animation: fadeIn 0.4s ease both; }
+    .botui-message-content.human { background-color: #5AC8FA; color: white; align-self: flex-end; }
+    .botui-message-content.bot { background-color: #f1f5f9; color: #111827; }
+    .botui-actions-text-input { background-color: #f9fafb; border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 12px; color: #111827; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
   {% endblock head %}
 </head>
@@ -75,45 +45,55 @@
     <!-- Chatbot Section -->
     <section class="bg-white text-gray-900 rounded-xl shadow-md flex flex-col overflow-hidden h-full">
 
-      <!-- Header -->
-      <div class="p-6 border-b border-gray-200 text-center">
-        <h2 class="text-2xl font-semibold flex justify-center items-center gap-2 mb-2">
-          <i class="fas fa-brain text-primary"></i> Planner Assistant
-        </h2>
-        <p class="text-gray-500 text-sm">
-          Plan your day, create events, take wellness breaks, and review your productivity – all with smart AI assistance.
-        </p>
+      <div class="flex justify-between items-center p-6 border-b border-gray-200">
+        <div class="flex-1 text-center">
+          <h2 class="text-2xl font-semibold flex justify-center items-center gap-2 mb-1">
+            <i class="fas fa-brain text-primary"></i> Planner Assistant
+          </h2>
+          <p class="text-gray-500 text-sm">Plan your day, create events, take wellness breaks, and review productivity.</p>
+        </div>
 
-        <div class="flex flex-wrap gap-2 justify-center mt-4">
-          <button data-mode="agenda" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-800">📅 Plan Today's Tasks</button>
-          <button data-mode="event" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-800">✏️ Create New Event</button>
-          <button data-mode="wellness" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-800">🧘 Wellness Break</button>
-          <button data-mode="review" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-800">📈 Review Productivity</button>
+        <!-- 3 Dots Dropdown -->
+        <div class="relative">
+          <button id="options-button" class="text-gray-500 hover:text-gray-700 text-2xl">
+            <i class="fas fa-ellipsis-v"></i>
+          </button>
+          <div id="options-menu" class="hidden absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-10">
+            <button id="clear-chat" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">🧹 Clear Chat</button>
+          </div>
         </div>
       </div>
 
-      <!-- Chatbot Messages -->
+      <div class="flex flex-wrap gap-2 justify-center p-4">
+        <button data-mode="agenda" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-800">📅 Plan Today's Tasks</button>
+        <button data-mode="event" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-800">✏️ Create New Event</button>
+        <button data-mode="wellness" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-800">🧘 Wellness Break</button>
+        <button data-mode="review" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-800">📈 Review Productivity</button>
+      </div>
+
       <div id="chat-container" class="flex-1 overflow-y-auto p-4">
         <div id="botui-app" class="h-full">
           <bot-ui></bot-ui>
         </div>
       </div>
 
-      <!-- Input Section -->
       <div class="flex items-center p-4 bg-gray-100 border-t border-gray-200 space-x-2">
         <button id="voice-button" class="bg-gray-200 hover:bg-gray-300 p-2 rounded-full text-gray-600">
           <i class="fas fa-microphone"></i>
         </button>
-
         <input id="custom-user-input" type="text" placeholder="What would you like to do today?"
                class="flex-1 bg-gray-50 border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary text-gray-800 placeholder-gray-400" />
-
         <button id="send-user-input" class="bg-primary hover:bg-blue-400 text-white px-6 rounded-lg">
           Send
         </button>
       </div>
 
     </section>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-md hidden z-50">
+      Chat cleared ✅
+    </div>
 
   </main>
 </div>
@@ -123,124 +103,141 @@
 <script src="https://cdn.jsdelivr.net/npm/botui/build/botui.min.js"></script>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const botui = new BotUI('botui-app');
-    const conversationHistory = [];
-    let currentMode = 'event';
+document.addEventListener('DOMContentLoaded', function () {
+  const botui = new BotUI('botui-app');
+  let conversationHistory = [];
+  let currentMode = 'event';
 
-    function getCSRFToken() {
-      const name = 'csrftoken';
-      return document.cookie.split(';').reduce((v,c) => {
-        const [k, val] = c.trim().split('=');
-        return k === name ? decodeURIComponent(val) : v;
-      }, '');
-    }
+  function getCSRFToken() {
+    const name = 'csrftoken';
+    return document.cookie.split(';').reduce((v,c) => {
+      const [k, val] = c.trim().split('=');
+      return k === name ? decodeURIComponent(val) : v;
+    }, '');
+  }
 
-    function scrollToBottom() {
-      const chatContainer = document.getElementById('chat-container');
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
+  function scrollToBottom() {
+    const chatContainer = document.getElementById('chat-container');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
 
-    function detectModeFromText(message) {
-      const text = message.toLowerCase();
-      if (text.includes('schedule') || text.includes('agenda') || text.includes('today')) return 'schedule';
-      if (text.includes('wellness') || text.includes('break')) return 'wellness';
-      if (text.includes('review') || text.includes('productivity')) return 'review';
-      return 'event';
-    }
-
-    async function displayBotReplySmooth(reply) {
-      const parts = reply.split(/(?<=\.|\!|\?)\s+|\n+/);
-      for (const part of parts) {
-        if (part.trim() !== "") {
-          const typingId = await botui.message.add({ 
-            type: 'html', 
-            content: `
-              <div class="flex gap-1 items-center">
-                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
-                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
-                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></span>
-              </div>
-            `
-          });
-          await new Promise(resolve => setTimeout(resolve, 800));
-          await botui.message.remove(typingId);
-          await botui.message.add({ content: part.trim() });
-          scrollToBottom();
-        }
-      }
-    }
-
-    function sendToAssistant(message) {
-      if (!message.trim()) return;
-
-      currentMode = detectModeFromText(message);
-      conversationHistory.push({ role: 'user', content: message });
-
-      botui.message.add({ content: message, human: true, cssClass: 'human' });
-      document.getElementById('custom-user-input').value = '';
-      scrollToBottom();
-
-      let loadingId;
-      botui.message.add({ type: 'html', content: `
-        <div class="flex gap-1 items-center">
-          <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
-          <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
-          <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></span>
-        </div>
-      ` }).then(i => loadingId = i);
-
-      fetch("{% url 'chatbot_response' %}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
-        body: JSON.stringify({ message, history: conversationHistory, mode: currentMode })
-      })
+  async function loadConversationHistory() {
+    fetch("{% url 'get_chat_history' %}")
       .then(r => r.json())
       .then(data => {
-        botui.message.remove(loadingId);
-        const reply = data.response || "Sorry, I didn’t understand.";
-        conversationHistory.push({ role: 'assistant', content: reply });
-
-        displayBotReplySmooth(reply);
-      })
-      .catch(() => {
-        botui.message.remove(loadingId);
-        botui.message.add({ content: "Oops! Something went wrong." }).then(scrollToBottom);
+        conversationHistory = data.history || [];
+        if (conversationHistory.length === 0) {
+          botui.message.add({ content: '👋 Hey there! Ready to plan your day?' });
+        } else {
+          conversationHistory.forEach(entry => {
+            if (entry.role === 'user') {
+              botui.message.add({ content: entry.content, human: true, cssClass: 'human' });
+            } else {
+              botui.message.add({ content: entry.content });
+            }
+          });
+        }
       });
-    }
+  }
 
-    botui.message.add({ content: '👋 Hey there! Ready to plan your day?' }).then(scrollToBottom);
-
-    document.getElementById('send-user-input').addEventListener('click', () => {
-      sendToAssistant(document.getElementById('custom-user-input').value);
-    });
-
-    document.getElementById('custom-user-input').addEventListener('keypress', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        sendToAssistant(e.target.value);
+  async function displayBotReplySmooth(reply) {
+    const parts = reply.split(/\n{2,}/);
+    for (const part of parts) {
+      if (part.trim() !== "") {
+        const typingId = await botui.message.add({ 
+          type: 'html', 
+          content: `<div class="flex gap-1 items-center">
+                      <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                      <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
+                      <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></span>
+                    </div>`
+        });
+        await new Promise(resolve => setTimeout(resolve, 700));
+        await botui.message.remove(typingId);
+        await botui.message.add({ content: part.trim() });
+        scrollToBottom();
       }
+    }
+  }
+
+  function sendToAssistant(message) {
+    if (!message.trim()) return;
+    currentMode = detectModeFromText(message);
+    conversationHistory.push({ role: 'user', content: message });
+
+    botui.message.add({ content: message, human: true, cssClass: 'human' });
+    document.getElementById('custom-user-input').value = '';
+    scrollToBottom();
+
+    fetch("{% url 'chatbot_response' %}", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+      body: JSON.stringify({ message, history: conversationHistory, mode: currentMode })
+    })
+    .then(r => r.json())
+    .then(data => {
+      const reply = data.response || "Sorry, I didn’t understand.";
+      conversationHistory.push({ role: 'assistant', content: reply });
+      displayBotReplySmooth(reply);
+    })
+    .catch(() => {
+      botui.message.add({ content: "Oops! Something went wrong." }).then(scrollToBottom);
     });
+  }
 
-    document.getElementById('voice-button').addEventListener('click', () => {
-      alert('🎤 Voice input coming soon!');
-    });
+  function detectModeFromText(message) {
+    const text = message.toLowerCase();
+    if (text.includes('schedule') || text.includes('agenda') || text.includes('today')) return 'schedule';
+    if (text.includes('wellness') || text.includes('break')) return 'wellness';
+    if (text.includes('review') || text.includes('productivity')) return 'review';
+    return 'event';
+  }
 
-    document.querySelectorAll('button[data-mode]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const mode = btn.dataset.mode;
-        currentMode = mode;
-        document.querySelectorAll('button[data-mode]').forEach(b => b.classList.remove('bg-primary', 'text-white'));
-        btn.classList.add('bg-primary', 'text-white');
+  loadConversationHistory();
 
-        if (mode === 'review') sendToAssistant("Review my productivity");
-        else if (mode === 'agenda') sendToAssistant("Let's plan today's tasks");
-        else if (mode === 'wellness') sendToAssistant("I need a wellness break");
-        else sendToAssistant("Create a new event");
-      });
-    });
-
+  document.getElementById('send-user-input').addEventListener('click', () => {
+    sendToAssistant(document.getElementById('custom-user-input').value);
   });
+  document.getElementById('custom-user-input').addEventListener('keypress', e => {
+    if (e.key === 'Enter') { e.preventDefault(); sendToAssistant(e.target.value); }
+  });
+
+  document.getElementById('voice-button').addEventListener('click', () => {
+    alert('🎤 Voice input coming soon!');
+  });
+
+  document.querySelectorAll('button[data-mode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      currentMode = mode;
+      document.querySelectorAll('button[data-mode]').forEach(b => b.classList.remove('bg-primary', 'text-white'));
+      btn.classList.add('bg-primary', 'text-white');
+      if (mode === 'review') sendToAssistant("Review my productivity");
+      else if (mode === 'agenda') sendToAssistant("Let's plan today's tasks");
+      else if (mode === 'wellness') sendToAssistant("I need a wellness break");
+      else sendToAssistant("Create a new event");
+    });
+  });
+
+  document.getElementById('options-button').addEventListener('click', () => {
+    document.getElementById('options-menu').classList.toggle('hidden');
+  });
+
+  document.getElementById('clear-chat').addEventListener('click', () => {
+    fetch("{% url 'clear_chat_history' %}", { method: 'POST', headers: { 'X-CSRFToken': getCSRFToken() } })
+      .then(() => {
+        botui.message.removeAll();
+        conversationHistory = [];
+        botui.message.add({ content: '👋 Hey there! Ready to plan your day?' });
+        document.getElementById('options-menu').classList.add('hidden');
+
+        const toast = document.getElementById('toast');
+        toast.classList.remove('hidden');
+        setTimeout(() => { toast.classList.add('hidden'); }, 3000);
+      });
+  });
+
+});
 </script>
 {% endblock %}
 </body>

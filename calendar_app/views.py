@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 import json
 import openai
 from django.conf import settings
-from .models import CalendarEvent, Reminder, Category, EventCategory, Task, DailyWellness, MoodEntry, Category, DailyWellness
+from .models import CalendarEvent, Reminder, Category, EventCategory, Task, DailyWellness, MoodEntry, Category, DailyWellness, ChatMessage
 from datetime import datetime, timedelta, date
 import re
 from django.contrib.auth.decorators import login_required
@@ -190,6 +190,8 @@ def create_event_from_details(details):
     
     return event
 
+from .models import ChatMessage  # Make sure this is imported!
+
 @csrf_exempt
 @login_required
 def chatbot_response(request):
@@ -240,6 +242,9 @@ def chatbot_response(request):
         today = timezone_now().date()
         now_time = timezone_now()
 
+        # --- Save User Message Immediately ---
+        ChatMessage.objects.create(user=request.user, role='user', content=user_message)
+
         # ✨ Handle Review Mode ✨
         if mode == "review":
             events = CalendarEvent.objects.filter(user=request.user, start_time__date=today)
@@ -263,12 +268,12 @@ def chatbot_response(request):
             final_tip = "\n\n💡 Tip: Prioritize urgent tasks first. Small wins build momentum!"
             full_response = review_summary + final_tip
 
-            conversation_history.append({"role": "user", "content": user_message})
-            conversation_history.append({"role": "assistant", "content": full_response})
+            # Save Assistant Reply
+            ChatMessage.objects.create(user=request.user, role='assistant', content=full_response)
 
-            return JsonResponse({"response": full_response, "history": conversation_history})
+            return JsonResponse({"response": full_response})
 
-        # 🗓️ Handle Schedule Viewing and Updates 🗓️
+        # 🗓️ Handle Schedule
         if mode == "schedule" or any(keyword in user_message.lower() for keyword in ["what's my schedule", "today's schedule", "what's planned"]):
             last_bot = next((m for m in reversed(conversation_history) if m['role'] == 'assistant'), None)
             rearrange_prompted = last_bot and "rearrange" in last_bot["content"].lower()
@@ -281,11 +286,11 @@ def chatbot_response(request):
                     "- Rename *Meeting* to *Brainstorm*\n"
                     "- Delete *Old Reminder*"
                 )
-                conversation_history.append({"role": "user", "content": user_message})
-                conversation_history.append({"role": "assistant", "content": prompt})
-                return JsonResponse({"response": prompt, "history": conversation_history})
 
-            # Try parsing move/rename/delete intents
+                ChatMessage.objects.create(user=request.user, role='assistant', content=prompt)
+                return JsonResponse({"response": prompt})
+
+            # Try parsing move/rename/delete
             intent = parse_intent(user_message)
             if intent:
                 action, *args = intent
@@ -339,11 +344,10 @@ def chatbot_response(request):
                     else:
                         result = f"⚠️ No event found with title **{title}**."
 
-                conversation_history.append({"role": "user", "content": user_message})
-                conversation_history.append({"role": "assistant", "content": result})
-                return JsonResponse({"response": result, "history": conversation_history})
+                ChatMessage.objects.create(user=request.user, role='assistant', content=result)
+                return JsonResponse({"response": result})
 
-            # No action -> just show today's schedule
+            # No action, show schedule
             events = CalendarEvent.objects.filter(user=request.user, start_time__date=today).order_by('start_time')
             reminders = Reminder.objects.filter(user=request.user, reminder_time__date=today).order_by('reminder_time')
 
@@ -351,7 +355,6 @@ def chatbot_response(request):
             if events.exists():
                 parts.append("📅 **Events:**")
                 parts += [f"• {e.title} — {e.start_time.strftime('%I:%M %p')} to {e.end_time.strftime('%I:%M %p')}" for e in events]
-
             if reminders.exists():
                 parts.append("\n⏰ **Reminders:**")
                 parts += [f"• {r.event.title} — {r.reminder_time.strftime('%I:%M %p')}" for r in reminders]
@@ -361,9 +364,8 @@ def chatbot_response(request):
             else:
                 bot_response = "🎉 You have no events or reminders scheduled today!"
 
-            conversation_history.append({"role": "user", "content": user_message})
-            conversation_history.append({"role": "assistant", "content": bot_response})
-            return JsonResponse({"response": bot_response, "history": conversation_history})
+            ChatMessage.objects.create(user=request.user, role='assistant', content=bot_response)
+            return JsonResponse({"response": bot_response})
 
         # 💬 Default OpenAI Chat
         system_prompt = {
@@ -385,20 +387,15 @@ def chatbot_response(request):
 
         bot_response = response["choices"][0]["message"]["content"].strip()
 
-        conversation_history.append({"role": "user", "content": user_message})
-        conversation_history.append({"role": "assistant", "content": bot_response})
+        # Save assistant reply
+        ChatMessage.objects.create(user=request.user, role='assistant', content=bot_response)
 
-        return JsonResponse({
-            "response": bot_response,
-            "history": conversation_history
-        })
+        return JsonResponse({"response": bot_response})
 
     except openai.OpenAIError as e:
         return JsonResponse({"error": f"OpenAI API Error: {str(e)}"}, status=500)
-
     except Exception as e:
         return JsonResponse({"error": f"Server Error: {str(e)}"}, status=500)
-    
 
 @csrf_exempt
 @login_required
@@ -1002,3 +999,22 @@ def update_wellness_goals(request):
     return JsonResponse({"success": False, "error": "Invalid request"}, status=400)
 
 
+@login_required
+def get_chat_history(request):
+    messages = ChatMessage.objects.filter(user=request.user).order_by('timestamp')
+    history = [
+        {
+            "role": msg.role,
+            "content": msg.content
+        }
+        for msg in messages
+    ]
+    return JsonResponse({"history": history})
+
+@csrf_exempt
+@login_required
+def clear_chat_history(request):
+    if request.method == 'POST':
+        ChatMessage.objects.filter(user=request.user).delete()
+        return JsonResponse({"success": True})
+    return JsonResponse({"error": "Invalid request."}, status=400)
