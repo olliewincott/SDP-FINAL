@@ -4,55 +4,126 @@
 <head>
   {% block head %}
   <meta charset="UTF-8">
-  <title>AI Assistant – PLN AI</title>
+  <title>AI Assistant – PLN AI</title>
 
-  <!-- Tailwind CSS -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: { primary: '#5AC8FA' },
-          fontFamily: { sans: ['Inter','sans-serif'] }
+          fontFamily: { sans: ['Inter', 'sans-serif'] }
         }
       }
     }
   </script>
 
-  <!-- Font Awesome -->
+  <!-- Font Awesome + BotUI -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
-
-  <!-- BotUI CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui.min.css"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui-theme-default.css"/>
 
-  <!-- Custom Overrides -->
-  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+  <style>
+    body {
+      background-color: #111827;
+      font-family: 'Inter', sans-serif;
+    }
+    .botui-container {
+      background-color: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+      font-size: 0.95rem;
+    }
+    .botui-message-content {
+      max-width: 80%;
+      padding: 10px 16px;
+      border-radius: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      animation: fadeIn 0.4s ease both;
+    }
+    .botui-message-content.human {
+      background-color: #5AC8FA;
+      color: white;
+      align-self: flex-end;
+    }
+    .botui-message-content.bot {
+      background-color: #f1f5f9;
+      color: #111827;
+    }
+    .botui-actions-text-input {
+      background-color: #f9fafb;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #111827;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
   {% endblock head %}
 </head>
 
-<body class="bg-gray-900 text-white font-sans min-h-screen">
-  <div class="flex">
-    {% include 'includes/sidebar.html' %}
+<body class="bg-gray-900 min-h-screen">
+<div class="flex">
+  {% include 'includes/sidebar.html' %}
 
-    <main class="flex-1 p-4 md:p-6 space-y-6">
-      {% include 'includes/topbar.html' with page_title="AI Assistant" %}
+  <main class="flex-1 p-4 md:p-6 flex flex-col h-screen">
 
-      <section class="bg-white text-gray-900 rounded-xl shadow-md p-6">
-        {% include 'includes/ai/ai_assistant_ui.html' %}
-      </section>
-    </main>
-  </div>
+    <!-- Chatbot Section -->
+    <section class="bg-white text-gray-900 rounded-xl shadow-md flex flex-col overflow-hidden h-full">
 
-  {% block page_scripts %}
-  <!-- Vue.js (for BotUI) -->
-  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+      <!-- Header -->
+      <div class="p-6 border-b border-gray-200 text-center">
+        <h2 class="text-2xl font-semibold flex justify-center items-center gap-2 mb-2">
+          <i class="fas fa-brain text-primary"></i> Planner Assistant
+        </h2>
+        <p class="text-gray-500 text-sm">
+          Plan your day, create events, take wellness breaks, and review your productivity – all with smart AI assistance.
+        </p>
 
-  <!-- BotUI JS -->
-  <script src="https://cdn.jsdelivr.net/npm/botui/build/botui.min.js"></script>
+        <div class="flex flex-wrap gap-2 justify-center mt-4">
+          <button data-mode="agenda" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-800">📅 Plan Today's Tasks</button>
+          <button data-mode="event" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-800">✏️ Create New Event</button>
+          <button data-mode="wellness" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-800">🧘 Wellness Break</button>
+          <button data-mode="review" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-800">📈 Review Productivity</button>
+        </div>
+      </div>
 
-  <!-- Assistant Logic -->
-  <script>
+      <!-- Chatbot Messages -->
+      <div id="chat-container" class="flex-1 overflow-y-auto p-4">
+        <div id="botui-app" class="h-full">
+          <bot-ui></bot-ui>
+        </div>
+      </div>
+
+      <!-- Input Section -->
+      <div class="flex items-center p-4 bg-gray-100 border-t border-gray-200 space-x-2">
+        <button id="voice-button" class="bg-gray-200 hover:bg-gray-300 p-2 rounded-full text-gray-600">
+          <i class="fas fa-microphone"></i>
+        </button>
+
+        <input id="custom-user-input" type="text" placeholder="What would you like to do today?"
+               class="flex-1 bg-gray-50 border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary text-gray-800 placeholder-gray-400" />
+
+        <button id="send-user-input" class="bg-primary hover:bg-blue-400 text-white px-6 rounded-lg">
+          Send
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+</div>
+
+{% block page_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/botui/build/botui.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
     const botui = new BotUI('botui-app');
     const conversationHistory = [];
     let currentMode = 'event';
@@ -61,81 +132,116 @@
       const name = 'csrftoken';
       return document.cookie.split(';').reduce((v,c) => {
         const [k, val] = c.trim().split('=');
-        return k===name ? decodeURIComponent(val) : v;
+        return k === name ? decodeURIComponent(val) : v;
       }, '');
+    }
+
+    function scrollToBottom() {
+      const chatContainer = document.getElementById('chat-container');
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function detectModeFromText(message) {
+      const text = message.toLowerCase();
+      if (text.includes('schedule') || text.includes('agenda') || text.includes('today')) return 'schedule';
+      if (text.includes('wellness') || text.includes('break')) return 'wellness';
+      if (text.includes('review') || text.includes('productivity')) return 'review';
+      return 'event';
+    }
+
+    async function displayBotReplySmooth(reply) {
+      const parts = reply.split(/(?<=\.|\!|\?)\s+|\n+/);
+      for (const part of parts) {
+        if (part.trim() !== "") {
+          const typingId = await botui.message.add({ 
+            type: 'html', 
+            content: `
+              <div class="flex gap-1 items-center">
+                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
+                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></span>
+              </div>
+            `
+          });
+          await new Promise(resolve => setTimeout(resolve, 800));
+          await botui.message.remove(typingId);
+          await botui.message.add({ content: part.trim() });
+          scrollToBottom();
+        }
+      }
     }
 
     function sendToAssistant(message) {
       if (!message.trim()) return;
-      conversationHistory.push({ role:'user', content:message });
-      botui.message.add({ content:message, human:true, cssClass:'human' });
-      document.getElementById('custom-user-input').value = '';
 
-      // show typing indicator
-      let idx;
-      botui.message.add({ type:'html', content:`
-        <div class="inline-flex gap-2 px-4 py-2 bg-gray-800 rounded-full">
+      currentMode = detectModeFromText(message);
+      conversationHistory.push({ role: 'user', content: message });
+
+      botui.message.add({ content: message, human: true, cssClass: 'human' });
+      document.getElementById('custom-user-input').value = '';
+      scrollToBottom();
+
+      let loadingId;
+      botui.message.add({ type: 'html', content: `
+        <div class="flex gap-1 items-center">
           <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
           <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
           <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></span>
-        </div>`
-      }).then(i => idx = i);
+        </div>
+      ` }).then(i => loadingId = i);
 
       fetch("{% url 'chatbot_response' %}", {
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'X-CSRFToken':getCSRFToken()
-        },
-        body: JSON.stringify({
-          message,
-          history:conversationHistory,
-          mode:currentMode
-        })
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+        body: JSON.stringify({ message, history: conversationHistory, mode: currentMode })
       })
-      .then(r=>r.json())
-      .then(data=>{
-        botui.message.remove(idx);
-        const reply = data.response||"Sorry, I didn’t understand.";
-        conversationHistory.push({ role:'assistant', content:reply });
-        botui.message.add({ content:reply });
+      .then(r => r.json())
+      .then(data => {
+        botui.message.remove(loadingId);
+        const reply = data.response || "Sorry, I didn’t understand.";
+        conversationHistory.push({ role: 'assistant', content: reply });
+
+        displayBotReplySmooth(reply);
       })
-      .catch(()=>{
-        botui.message.remove(idx);
-        botui.message.add({ content:'Oops! Something went wrong.' });
+      .catch(() => {
+        botui.message.remove(loadingId);
+        botui.message.add({ content: "Oops! Something went wrong." }).then(scrollToBottom);
       });
     }
 
-    document.addEventListener('DOMContentLoaded', ()=>{
-      botui.message.add({ content:'Hey there! Ready to plan your day?' });
+    botui.message.add({ content: '👋 Hey there! Ready to plan your day?' }).then(scrollToBottom);
 
-      document.getElementById('send-user-input')
-        .addEventListener('click',()=>{
-          sendToAssistant(document.getElementById('custom-user-input').value);
-        });
-
-      document.getElementById('custom-user-input')
-        .addEventListener('keypress',e=>{
-          if (e.key==='Enter') {
-            e.preventDefault();
-            sendToAssistant(e.target.value);
-          }
-        });
-
-      document.querySelectorAll('.suggested-actions span')
-        .forEach(btn=>{
-          btn.addEventListener('click',()=>{
-            const text = btn.textContent.trim();
-            currentMode = btn.dataset.mode||'event';
-            // highlight selected
-            document.querySelectorAll('.suggested-actions span')
-              .forEach(b=>b.classList.remove('bg-primary','text-white'));
-            btn.classList.add('bg-primary','text-white','rounded');
-            sendToAssistant(text);
-          });
-        });
+    document.getElementById('send-user-input').addEventListener('click', () => {
+      sendToAssistant(document.getElementById('custom-user-input').value);
     });
-  </script>
-  {% endblock %}
+
+    document.getElementById('custom-user-input').addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendToAssistant(e.target.value);
+      }
+    });
+
+    document.getElementById('voice-button').addEventListener('click', () => {
+      alert('🎤 Voice input coming soon!');
+    });
+
+    document.querySelectorAll('button[data-mode]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        currentMode = mode;
+        document.querySelectorAll('button[data-mode]').forEach(b => b.classList.remove('bg-primary', 'text-white'));
+        btn.classList.add('bg-primary', 'text-white');
+
+        if (mode === 'review') sendToAssistant("Review my productivity");
+        else if (mode === 'agenda') sendToAssistant("Let's plan today's tasks");
+        else if (mode === 'wellness') sendToAssistant("I need a wellness break");
+        else sendToAssistant("Create a new event");
+      });
+    });
+
+  });
+</script>
+{% endblock %}
 </body>
 </html>

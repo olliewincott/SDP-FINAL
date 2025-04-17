@@ -18,6 +18,9 @@ from django.utils.timezone import now as timezone_now, make_aware, is_naive
 from django.utils.dateparse import parse_datetime as django_parse_datetime
 from django.db import transaction, OperationalError
 import time
+import difflib
+from django.utils.timezone import now
+
 
 # Set the OpenAI API key from settings (loaded from your .env file)
 openai.api_key = settings.OPENAI_API_KEY
@@ -193,7 +196,6 @@ def chatbot_response(request):
     def parse_intent(text):
         text = text.lower()
 
-        # Move
         move_match = re.match(r".*(move|reschedule)\s+(.*?)\s+(to|at)\s+(\d{1,2}:\d{2})\s*(am|pm)?", text)
         if move_match:
             title = move_match.group(2).strip()
@@ -207,14 +209,12 @@ def chatbot_response(request):
                 new_time = datetime.strptime(time_str, "%H:%M").time()
             return ('move', title, new_time)
 
-        # Rename
-        rename_match = re.match(r".*(rename|change)\s+(.*?)\s+(to)\s+(.*)", text)
+        rename_match = re.match(r".*(rename|change)\s+(.*?)\s+to\s+(.*)", text)
         if rename_match:
             old_title = rename_match.group(2).strip()
-            new_title = rename_match.group(4).strip()
+            new_title = rename_match.group(3).strip()
             return ('rename', old_title, new_title)
 
-        # Delete
         delete_match = re.match(r".*(delete|remove)\s+(.*?)$", text)
         if delete_match:
             title = delete_match.group(2).strip()
@@ -222,175 +222,183 @@ def chatbot_response(request):
 
         return None
 
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            user_message = data.get("message", "").strip()
-            conversation_history = data.get("history", [])
-            mode = data.get("mode", "event")
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request method."}, status=400)
 
-            if not user_message:
-                return JsonResponse({"error": "Empty message."}, status=400)
+    try:
+        data = json.loads(request.body)
+        user_message = data.get("message", "").strip()
+        conversation_history = data.get("history", [])
+        mode = data.get("mode", "event")
 
-            if not openai.api_key:
-                return JsonResponse({"error": "OpenAI API Key is missing."}, status=400)
+        if not user_message:
+            return JsonResponse({"error": "Empty message."}, status=400)
 
-            # 🎯 SCHEDULE MODE (with rearranging)
-            if mode == "schedule":
-                today = timezone_now().date()
+        if not openai.api_key:
+            return JsonResponse({"error": "OpenAI API Key is missing."}, status=400)
 
-                # 🧠 Detect general confirmation like "yes please"
-                last_bot = next((m for m in reversed(conversation_history) if m['role'] == 'assistant'), None)
-                rearrange_prompted = last_bot and "rearranging or updating" in last_bot["content"].lower()
-                affirmative = user_message.lower() in ["yes", "yes please", "sure", "yeah", "yep", "okay", "ok"]
+        today = timezone_now().date()
+        now_time = timezone_now()
 
-                if rearrange_prompted and affirmative:
-                    bot_response = (
-                        "Great! 🎯 Let me know what you'd like to change.\n\n"
-                        "Examples:\n"
-                        "• Move *Family Time* to 3:30 PM\n"
-                        "• Rename *Errands* to *Groceries*\n"
-                        "• Delete *Laundry reminder*"
-                    )
-                    conversation_history.append({"role": "user", "content": user_message})
-                    conversation_history.append({"role": "assistant", "content": bot_response})
-                    return JsonResponse({"response": bot_response, "history": conversation_history})
+        # ✨ Handle Review Mode ✨
+        if mode == "review":
+            events = CalendarEvent.objects.filter(user=request.user, start_time__date=today)
+            reminders = Reminder.objects.filter(user=request.user, reminder_time__date=today)
 
-                # 🔍 Try to extract an intent
-                intent = parse_intent(user_message)
+            completed_events = events.filter(end_time__lt=now_time)
+            upcoming_events = events.filter(start_time__gt=now_time)
+            ongoing_events = events.filter(start_time__lte=now_time, end_time__gte=now_time)
 
-                if intent:
-                    action, *args = intent
-                    response_message = ""
+            parts = []
+            if completed_events.exists():
+                parts.append(f"✅ Completed {completed_events.count()} event(s) today.")
+            if ongoing_events.exists():
+                parts.append(f"⚡ {ongoing_events.count()} event(s) currently in progress.")
+            if upcoming_events.exists():
+                parts.append(f"📅 {upcoming_events.count()} upcoming event(s).")
+            if reminders.exists():
+                parts.append(f"🔔 {reminders.count()} reminder(s) set.")
 
-                    if action == "move":
-                        title, new_time = args
-                        event = CalendarEvent.objects.filter(user=request.user, title__icontains=title).first()
-                        if event:
-                            duration = event.end_time - event.start_time
-                            new_start = datetime.combine(today, new_time)
-                            new_end = new_start + duration
-                            event.start_time = make_aware(new_start)
-                            event.end_time = make_aware(new_end)
-                            event.save()
-                            response_message = f"✅ '{event.title}' has been rescheduled to {new_start.strftime('%H:%M')}–{new_end.strftime('%H:%M')}."
-                        else:
-                            response_message = f"⚠️ No event found titled '{title}'."
+            review_summary = "\n".join(parts) if parts else "🎉 No scheduled activities today!"
+            final_tip = "\n\n💡 Tip: Prioritize urgent tasks first. Small wins build momentum!"
+            full_response = review_summary + final_tip
 
-                    elif action == "rename":
-                        old_title, new_title = args
-                        event = CalendarEvent.objects.filter(user=request.user, title__icontains=old_title).first()
-                        if event:
-                            event.title = new_title
-                            event.save()
-                            response_message = f"✅ Event renamed to '{new_title}'."
-                        else:
-                            response_message = f"⚠️ Could not find event '{old_title}'."
+            conversation_history.append({"role": "user", "content": user_message})
+            conversation_history.append({"role": "assistant", "content": full_response})
 
-                    elif action == "delete":
-                        title = args[0]
-                        event = CalendarEvent.objects.filter(user=request.user, title__icontains=title).first()
-                        if event:
-                            event.delete()
-                            response_message = f"🗑️ Event '{title}' has been deleted."
-                        else:
-                            response_message = f"⚠️ Could not find event titled '{title}'."
+            return JsonResponse({"response": full_response, "history": conversation_history})
 
-                    conversation_history.append({"role": "user", "content": user_message})
-                    conversation_history.append({"role": "assistant", "content": response_message})
-                    return JsonResponse({"response": response_message, "history": conversation_history})
+        # 🗓️ Handle Schedule Viewing and Updates 🗓️
+        if mode == "schedule" or any(keyword in user_message.lower() for keyword in ["what's my schedule", "today's schedule", "what's planned"]):
+            last_bot = next((m for m in reversed(conversation_history) if m['role'] == 'assistant'), None)
+            rearrange_prompted = last_bot and "rearrange" in last_bot["content"].lower()
+            affirmative = user_message.lower() in ["yes", "sure", "yeah", "ok", "okay", "yes please"]
 
-                # 👀 Show today’s schedule if no intent or follow-up
-                events = CalendarEvent.objects.filter(
-                    user=request.user,
-                    start_time__date=today,
-                    reminder__isnull=True
-                ).order_by('start_time')
-
-                reminders = Reminder.objects.filter(
-                    user=request.user,
-                    reminder_time__date=today
-                ).select_related('event').order_by('reminder_time')
-
-                parts = []
-
-                if events.exists():
-                    parts.append("📅 **Events:**")
-                    parts += [f"• {e.title} — {e.start_time.strftime('%H:%M')} to {e.end_time.strftime('%H:%M')}" for e in events]
-
-                if reminders.exists():
-                    parts.append("\n⏰ **Reminders:**")
-                    parts += [f"• {r.event.title} — {r.reminder_time.strftime('%H:%M')}" for r in reminders]
-
-                bot_response = "🎉 You're all clear today!" if not parts else (
-                    "Here's your schedule for today:\n\n" + "\n".join(parts) +
-                    "\n\nWould you like help rearranging or updating anything?"
+            if rearrange_prompted and affirmative:
+                prompt = (
+                    "Awesome! Tell me what you'd like to adjust:\n"
+                    "- Move *Task Name* to 3:30 PM\n"
+                    "- Rename *Meeting* to *Brainstorm*\n"
+                    "- Delete *Old Reminder*"
                 )
+                conversation_history.append({"role": "user", "content": user_message})
+                conversation_history.append({"role": "assistant", "content": prompt})
+                return JsonResponse({"response": prompt, "history": conversation_history})
+
+            # Try parsing move/rename/delete intents
+            intent = parse_intent(user_message)
+            if intent:
+                action, *args = intent
+                result = ""
+
+                if action == "move":
+                    title, new_time = args
+                    event = CalendarEvent.objects.filter(user=request.user, title__icontains=title).first()
+                    if event:
+                        duration = event.end_time - event.start_time
+                        new_start = datetime.combine(today, new_time)
+                        new_end = new_start + duration
+                        event.start_time = make_aware(new_start)
+                        event.end_time = make_aware(new_end)
+                        event.save()
+                        result = (
+                            f"✅ **Updated Event:**\n\n"
+                            f"• **Title:** {event.title}\n"
+                            f"• **New Start:** {new_start.strftime('%I:%M %p')}\n"
+                            f"• **New End:** {new_end.strftime('%I:%M %p')}\n\n"
+                            f"Anything else you'd like to adjust?"
+                        )
+                    else:
+                        result = f"⚠️ No event found with title **{title}**."
+
+                elif action == "rename":
+                    old_title, new_title = args
+                    event = CalendarEvent.objects.filter(user=request.user, title__icontains=old_title).first()
+                    if event:
+                        event.title = new_title
+                        event.save()
+                        result = (
+                            f"✅ **Renamed Event:**\n\n"
+                            f"• **Old Title:** {old_title}\n"
+                            f"• **New Title:** {new_title}\n\n"
+                            f"Would you like to rename or update more?"
+                        )
+                    else:
+                        result = f"⚠️ No event found with title **{old_title}**."
+
+                elif action == "delete":
+                    title = args[0]
+                    event = CalendarEvent.objects.filter(user=request.user, title__icontains=title).first()
+                    if event:
+                        event.delete()
+                        result = (
+                            f"🗑️ **Deleted Event:**\n\n"
+                            f"• **Title:** {title}\n\n"
+                            f"✅ Successfully removed! Want to delete anything else?"
+                        )
+                    else:
+                        result = f"⚠️ No event found with title **{title}**."
 
                 conversation_history.append({"role": "user", "content": user_message})
-                conversation_history.append({"role": "assistant", "content": bot_response})
-                return JsonResponse({"response": bot_response, "history": conversation_history})
+                conversation_history.append({"role": "assistant", "content": result})
+                return JsonResponse({"response": result, "history": conversation_history})
 
-            # 🧠 Other Modes
-            if mode == "event":
-                system_message = (
-                    "You are a smart calendar assistant helping users create structured events.\n"
-                    "Ask for: title, date, start_time, end_time, user_id (always 'testuser'), "
-                    "description (optional), and reminder time (optional).\n"
-                    "Once complete, reply ONLY with this JSON:\n"
-                    "{\n"
-                    '  "title": "Event Title",\n'
-                    '  "date": "YYYY-MM-DD",\n'
-                    '  "start_time": "HH:MM AM/PM",\n'
-                    '  "end_time": "HH:MM AM/PM",\n'
-                    '  "user_id": "testuser",\n'
-                    '  "description": "Optional",\n'
-                    '  "reminder": "Optional HH:MM AM/PM"\n'
-                    "}"
-                )
-            elif mode == "agenda":
-                system_message = "You're a productivity coach helping users plan their day. Ask about goals, breaks, and meetings."
-            elif mode == "wellness":
-                system_message = "You're a cheerful wellness buddy 🌱. Encourage hydration, movement, and self-care."
+            # No action -> just show today's schedule
+            events = CalendarEvent.objects.filter(user=request.user, start_time__date=today).order_by('start_time')
+            reminders = Reminder.objects.filter(user=request.user, reminder_time__date=today).order_by('reminder_time')
+
+            parts = []
+            if events.exists():
+                parts.append("📅 **Events:**")
+                parts += [f"• {e.title} — {e.start_time.strftime('%I:%M %p')} to {e.end_time.strftime('%I:%M %p')}" for e in events]
+
+            if reminders.exists():
+                parts.append("\n⏰ **Reminders:**")
+                parts += [f"• {r.event.title} — {r.reminder_time.strftime('%I:%M %p')}" for r in reminders]
+
+            if parts:
+                bot_response = "Here's your schedule for today:\n\n" + "\n".join(parts) + "\n\nWould you like to rearrange or update anything?"
             else:
-                system_message = "You're a helpful AI assistant helping users manage time, plan tasks, and stay well."
+                bot_response = "🎉 You have no events or reminders scheduled today!"
 
-            messages = [{"role": "system", "content": system_message}]
-            messages.extend(conversation_history)
-            messages.append({"role": "user", "content": user_message})
-
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=messages,
-                max_tokens=500,
-                temperature=0.7
-            )
-
-            bot_response = response["choices"][0]["message"]["content"].strip()
             conversation_history.append({"role": "user", "content": user_message})
             conversation_history.append({"role": "assistant", "content": bot_response})
+            return JsonResponse({"response": bot_response, "history": conversation_history})
 
-            if mode == "event":
-                json_match = re.search(r'\{.*\}', bot_response, re.DOTALL)
-                if json_match:
-                    try:
-                        event_details = json.loads(json_match.group(0))
-                        event = create_event_from_details(event_details)
-                        bot_response += f"\n✅ Event '{event.title}' added to your calendar!"
-                    except Exception as e:
-                        bot_response += f"\n⚠️ Couldn't create event: {e}"
+        # 💬 Default OpenAI Chat
+        system_prompt = {
+            "event": "Assist users in creating structured events (title, date, time, optional reminders).",
+            "agenda": "Assist users in planning their day with goals, tasks, and breaks.",
+            "wellness": "Encourage users to take short wellness breaks and promote good habits."
+        }.get(mode, "Assist users with time management and productivity.")
 
-            return JsonResponse({
-                "response": bot_response,
-                "history": conversation_history
-            })
+        messages = [{"role": "system", "content": system_prompt}]
+        messages.extend(conversation_history)
+        messages.append({"role": "user", "content": user_message})
 
-        except openai.OpenAIError as e:
-            return JsonResponse({"error": f"OpenAI API Error: {str(e)}"}, status=500)
-        except Exception as e:
-            return JsonResponse({"error": f"Server Error: {str(e)}"}, status=500)
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=messages,
+            max_tokens=500,
+            temperature=0.6
+        )
 
-    return JsonResponse({"error": "Invalid request method."}, status=400)
+        bot_response = response["choices"][0]["message"]["content"].strip()
+
+        conversation_history.append({"role": "user", "content": user_message})
+        conversation_history.append({"role": "assistant", "content": bot_response})
+
+        return JsonResponse({
+            "response": bot_response,
+            "history": conversation_history
+        })
+
+    except openai.OpenAIError as e:
+        return JsonResponse({"error": f"OpenAI API Error: {str(e)}"}, status=500)
+
+    except Exception as e:
+        return JsonResponse({"error": f"Server Error: {str(e)}"}, status=500)
+    
 
 @csrf_exempt
 @login_required
@@ -717,15 +725,38 @@ def wellbeing_view(request):
         date=date.today()
     )
 
-    # Calculate current streak
-    streak = calculate_streak(request.user)
+    # Calculate correct streak
+    today = now().date()
+    yesterday = today - timedelta(days=1)
+
+    # Fetch all user entries ordered from most recent
+    wellness_entries = DailyWellness.objects.filter(user=request.user).order_by('-date')
+
+    streak = 0
+    skipped_today = False
+
+    for entry in wellness_entries:
+        if entry.date == today:
+            if entry.goal_completed:
+                streak += 1
+            else:
+                skipped_today = True
+                continue  # Don't break yet — check yesterday
+        elif entry.date == yesterday:
+            if entry.goal_completed:
+                streak += 1
+            else:
+                break
+        elif entry.goal_completed:
+            streak += 1
+        else:
+            break
 
     return render(request, 'wellbeing.html', {
         'reminders': reminders,
         'wellness': wellness,
         'wellness_streak': streak
     })
-
 @login_required
 @csrf_exempt
 def update_event_time(request):
