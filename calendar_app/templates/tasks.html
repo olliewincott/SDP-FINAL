@@ -20,14 +20,10 @@
   </script>
 
   <!-- Font Awesome -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
-  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
   <style>
-    /* Optional: nice scrollbars */
+    /* Scrollbar */
     .overflow-y-auto::-webkit-scrollbar {
       width: 8px;
     }
@@ -38,14 +34,26 @@
     .overflow-y-auto::-webkit-scrollbar-track {
       background: transparent;
     }
+
+    /* Animate main content only */
+    .content-fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+    .content-fade-in.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
   </style>
   {% endblock head %}
 </head>
+
 <body class="bg-gray-900 text-white font-sans min-h-screen">
   <div class="flex">
     {% include 'includes/sidebar.html' %}
 
-    <main class="flex-1 p-4 md:p-6">
+    <main class="flex-1 p-4 md:p-6 content-fade-in">
       {% include 'includes/topbar.html' with page_title="Tasks" %}
 
       <!-- Filter -->
@@ -70,19 +78,13 @@
               <button class="text-gray-600 hover:text-gray-800" data-dropdown-btn="task">
                 <i class="fas fa-ellipsis-v"></i>
               </button>
-              <div
-                class="absolute right-0 mt-2 w-40 bg-white text-gray-800 rounded-lg shadow-lg hidden z-50"
-                data-dropdown-menu="task"
-              >
-                <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="add-task">
-                  ➕ Add Task
-                </button>
-                <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="toggle-task-edit">
-                  ✏️ Edit
-                </button>
+              <div class="absolute right-0 mt-2 w-40 bg-white text-gray-800 rounded-lg shadow-lg hidden z-50" data-dropdown-menu="task">
+                <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="add-task">➕ Add Task</button>
+                <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="toggle-task-edit">✏️ Edit</button>
               </div>
             </div>
           </div>
+
           <!-- Scrollable container -->
           <div class="overflow-y-auto max-h-[78vh] pr-2">
             <ul id="incomplete-tasks" class="space-y-3">
@@ -101,19 +103,13 @@
               <button class="text-gray-600 hover:text-gray-800" data-dropdown-btn="task">
                 <i class="fas fa-ellipsis-v"></i>
               </button>
-              <div
-                class="absolute right-0 mt-2 w-40 bg-white text-gray-800 rounded-lg shadow-lg hidden z-50"
-                data-dropdown-menu="task"
-              >
-                <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="add-task">
-                  ➕ Add Task
-                </button>
-                <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="toggle-task-edit">
-                  ✏️ Edit
-                </button>
+              <div class="absolute right-0 mt-2 w-40 bg-white text-gray-800 rounded-lg shadow-lg hidden z-50" data-dropdown-menu="task">
+                <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="add-task">➕ Add Task</button>
+                <button class="w-full px-4 py-2 text-left hover:bg-gray-100" data-action="toggle-task-edit">✏️ Edit</button>
               </div>
             </div>
           </div>
+
           <!-- Scrollable container -->
           <div class="overflow-y-auto max-h-[78vh] pr-2">
             <ul id="completed-tasks" class="space-y-3">
@@ -125,7 +121,7 @@
     </main>
   </div>
 
-  <!-- Tailwind‑based Add/Edit Task Modal -->
+  <!-- Add Task Modal -->
   <div id="addTaskModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
     {% include 'includes/add_task_modal.html' %}
   </div>
@@ -141,5 +137,15 @@
   {% block page_scripts %}
     <script src="{% static 'js/tasks.js' %}"></script>
   {% endblock %}
+
+  <!-- Animate Main Content -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(() => {
+        document.querySelector('.content-fade-in').classList.add('show');
+      }, 150);
+    });
+  </script>
+
 </body>
 </html>
