@@ -5,13 +5,43 @@ document.addEventListener("DOMContentLoaded", function () {
   const modal = document.getElementById('wellnessGoalsModal');
   const form = document.getElementById('wellnessGoalsForm');
 
-  // Fetch wellness data on load
+  // Track confetti triggers persistently
+  const confettiTriggered = JSON.parse(localStorage.getItem('confettiTriggered')) || {
+    water: false,
+    breaks: false,
+    meals: false
+  };
+
+  function saveConfettiState() {
+    localStorage.setItem('confettiTriggered', JSON.stringify(confettiTriggered));
+  }
+
+  function saveLevelXP(level, xp) {
+    localStorage.setItem('wellnessLevel', level);
+    localStorage.setItem('wellnessXP', xp);
+  }
+
+  function loadLevelXP() {
+    return {
+      level: parseInt(localStorage.getItem('wellnessLevel') || '1'),
+      xp: parseInt(localStorage.getItem('wellnessXP') || '0')
+    };
+  }
+
+  // Load saved level/xp initially
+  const savedStats = loadLevelXP();
+  updateLevelDisplay(savedStats.level, savedStats.xp);
+
   fetch(window.wellnessJsonUrl)
     .then(r => r.json())
     .then(data => {
       console.log("✅ Fetched wellness data:", data);
       updateWellnessProgress(data);
-      updateLevelDisplay(data.level, data.xp);
+
+      if (data.level && data.xp !== undefined) {
+        saveLevelXP(data.level, data.xp);
+        updateLevelDisplay(data.level, data.xp);
+      }
     })
     .catch(err => {
       console.error("❌ Error fetching wellness data:", err);
@@ -33,20 +63,12 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(r => r.json())
         .then(data => {
           console.log("✅ Wellness updated:", data);
+
           fetch(window.wellnessJsonUrl)
             .then(r => r.json())
             .then(freshData => {
               updateWellnessProgress(freshData);
-              updateLevelDisplay(data.level, data.xp);
-
-              if (data.leveled_up && typeof confetti === "function") {
-                confetti({
-                  particleCount: 150,
-                  spread: 80,
-                  origin: { y: 0.3 },
-                  colors: ['#4cd964', '#5AC8FA', '#ffcc00', '#5856d6']
-                });
-              }
+              handleLevelAndXP(freshData.level, freshData.xp);
             });
         })
         .catch(err => {
@@ -55,7 +77,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // Show modal
+  // Modal Handling
   if (editGoalsBtn && modal) {
     editGoalsBtn.addEventListener('click', () => {
       modal.classList.remove('hidden');
@@ -67,7 +89,6 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     });
 
-    // ESC key closes modal
     window.addEventListener('keydown', (e) => {
       if (e.key === "Escape") {
         modal.classList.add('hidden');
@@ -75,7 +96,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Submit modal form
+  // Modal form submit
   if (form) {
     form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -96,12 +117,16 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log("✅ Goals updated:", data);
             modal.classList.add('hidden');
 
-            // Refresh progress
+            confettiTriggered.water = false;
+            confettiTriggered.breaks = false;
+            confettiTriggered.meals = false;
+            saveConfettiState();
+
             fetch(window.wellnessJsonUrl)
               .then(r => r.json())
               .then(freshData => {
                 updateWellnessProgress(freshData);
-                updateLevelDisplay(freshData.level, freshData.xp);
+                handleLevelAndXP(freshData.level, freshData.xp);
               });
           } else {
             alert("❌ Failed to save goals.");
@@ -139,16 +164,58 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (percent === 100) {
       wrapper.classList.add("complete");
-      if (typeof confetti === "function") {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.4 },
-          colors: ['#4cd964', '#5AC8FA', '#ffcc00']
-        });
+
+      if (!confettiTriggered[type]) {
+        confettiTriggered[type] = true;
+        saveConfettiState();
+        if (typeof confetti === "function") {
+          confetti({
+            particleCount: 120,
+            spread: 70,
+            origin: { y: 0.4 },
+            colors: ['#4cd964', '#5AC8FA', '#ffcc00']
+          });
+        }
       }
     } else {
       wrapper.classList.remove("complete");
+    }
+  }
+
+  function handleLevelAndXP(level, xp) {
+    let currentLevel = parseInt(localStorage.getItem('wellnessLevel') || '1');
+    let currentXP = parseInt(localStorage.getItem('wellnessXP') || '0');
+
+    // Safety net: If backend sends new ones, update
+    if (level && xp !== undefined) {
+      currentLevel = level;
+      currentXP = xp;
+    }
+
+    if (currentXP >= 100) {
+      currentLevel++;
+      currentXP = 0;
+
+      localStorage.setItem('wellnessLevel', currentLevel);
+      localStorage.setItem('wellnessXP', currentXP);
+
+      updateLevelDisplay(currentLevel, currentXP);
+
+      if (typeof confetti === "function") {
+        confetti({
+          particleCount: 200,
+          spread: 100,
+          origin: { y: 0.3 },
+          colors: ['#5AC8FA', '#4cd964', '#ffcc00', '#5856d6']
+        });
+      }
+
+      setTimeout(() => {
+        alert(`🎉 Congratulations! You've reached Level ${currentLevel}! 🎯`);
+      }, 300);
+    } else {
+      saveLevelXP(currentLevel, currentXP);
+      updateLevelDisplay(currentLevel, currentXP);
     }
   }
 

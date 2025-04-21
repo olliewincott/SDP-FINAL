@@ -1,6 +1,6 @@
-<!-- Task Modal -->
-<div id="addTaskModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
-  <form id="addTaskForm" class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-5 relative">
+<!-- add_task_modal.html -->
+<div id="addTaskModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden transition-opacity duration-300">
+  <form id="addTaskForm" class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-5 relative animate-scale-in">
     
     <!-- Close Button -->
     <button type="button" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-xl" data-close-modal>
@@ -38,8 +38,19 @@
     <div class="flex justify-end gap-3 pt-3">
       <button type="button" data-close-modal
         class="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
-      <button type="submit"
+      <button type="submit" id="saveTaskBtn"
         class="px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm">Create Task</button>
     </div>
   </form>
 </div>
+
+<!-- Tailwind animation for form pop -->
+<style>
+@keyframes scale-in {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out forwards;
+}
+</style>
