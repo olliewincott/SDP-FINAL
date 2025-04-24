@@ -58,15 +58,51 @@ def chatbot_response_logic(request):
 
         ChatMessage.objects.create(user=request.user, role='user', content=user_message)
 
-        # 🗓 Schedule / Agenda Mode
+        # Handle Review Mode
+        if mode == "review":
+            events = CalendarEvent.objects.filter(user=request.user, start_time__date=today)
+            reminders = Reminder.objects.filter(user=request.user, reminder_time__date=today)
+
+            completed = events.filter(end_time__lt=now_time)
+            upcoming = events.filter(start_time__gt=now_time)
+            ongoing = events.filter(start_time__lte=now_time, end_time__gte=now_time)
+
+            parts = []
+            if completed.exists():
+                parts.append(f"✅ Completed {completed.count()} event(s).")
+            if ongoing.exists():
+                parts.append(f"⚡ {ongoing.count()} event(s) happening now.")
+            if upcoming.exists():
+                parts.append(f"📅 {upcoming.count()} upcoming event(s).")
+            if reminders.exists():
+                parts.append(f"🔔 {reminders.count()} reminder(s) today.")
+
+            review_summary = "\n".join(parts) if parts else "🎉 No scheduled activities today!"
+            tip = "\n\n💡 Tip: Focus on what matters most to stay productive!"
+            full_response = review_summary + tip
+
+            ChatMessage.objects.create(user=request.user, role='assistant', content=full_response)
+            return JsonResponse({"response": full_response})
+
+        # Handle Wellness Mode
+        if mode == "wellness":
+            wellness_message = (
+                "🧘 Let's take a short wellness break!\n\n"
+                "- 💧 Drink some water\n"
+                "- 🚶‍♂️ Stretch your legs\n"
+                "- 🍎 Have a healthy snack\n\n"
+                "Ready to continue strong! 💪"
+            )
+            ChatMessage.objects.create(user=request.user, role='assistant', content=wellness_message)
+            return JsonResponse({"response": wellness_message})
+
+        # Handle Schedule/Agenda Mode
         if mode == "schedule" or any(keyword in user_message.lower() for keyword in ["schedule", "today", "plan"]):
             events = CalendarEvent.objects.filter(user=request.user, start_time__date=today).order_by('start_time')
             reminders = Reminder.objects.filter(user=request.user, reminder_time__date=today).order_by('reminder_time')
             tasks = Task.objects.filter(user=request.user, completed=False, due_date__date=today).order_by('due_date')
 
-            event_lines = []
-            reminder_lines = []
-            task_lines = []
+            sections = []
 
             def icon(title):
                 title = title.lower()
@@ -80,59 +116,48 @@ def chatbot_response_logic(request):
                 if "breakfast" in title or "lunch" in title or "dinner" in title: return "🍽️"
                 return "📌"
 
-            # Build event section
             if events.exists():
-                event_lines.append("<h3>🗓️ Today's Events:</h3><ul>")
+                event_lines = ["<h3>🗓️ Today's Events:</h3><ul>"]
                 for event in events:
                     event_lines.append(
                         f"<li>{icon(event.title)} <strong>{escape(event.title)}</strong> — ⏰ {event.start_time.strftime('%I:%M %p')} → {event.end_time.strftime('%I:%M %p')}</li>"
                     )
                 event_lines.append("</ul>")
+                sections.append("".join(event_lines))
 
-            # Build reminder section
             if reminders.exists():
-                reminder_lines.append("<h3>🔔 Today's Reminders:</h3><ul>")
+                reminder_lines = ["<h3>🔔 Today's Reminders:</h3><ul>"]
                 for reminder in reminders:
                     reminder_lines.append(
                         f"<li>📍 <strong>{escape(reminder.event.title)}</strong> — ⏰ {reminder.reminder_time.strftime('%I:%M %p')}</li>"
                     )
                 reminder_lines.append("</ul>")
+                sections.append("".join(reminder_lines))
 
-            # Build task section
             if tasks.exists():
-                task_lines.append("<h3>✅ Today's Tasks:</h3><ul>")
+                task_lines = ["<h3>✅ Today's Tasks:</h3><ul>"]
                 for task in tasks:
                     due_time = task.due_date.strftime("%I:%M %p") if task.due_date else "No Due Time"
                     task_lines.append(
                         f"<li>📝 <strong>{escape(task.title)}</strong> — (Due: ⏰ {due_time})</li>"
                     )
                 task_lines.append("</ul>")
-
-            # Assemble full bot reply
-            sections = []
-            if event_lines:
-                sections.append("".join(event_lines))
-            if reminder_lines:
-                if sections: sections.append("<hr>")  # Separator
-                sections.append("".join(reminder_lines))
-            if task_lines:
-                if sections: sections.append("<hr>")  # Separator
                 sections.append("".join(task_lines))
 
             if sections:
-                bot_response = f"<div>{''.join(sections)}</div><br>Would you like to rearrange or update anything?"
+                full_response = "<div>" + "<hr>".join(sections) + "</div><br>Would you like to rearrange or update anything?"
             else:
-                bot_response = "🎉 You have no events, reminders or tasks scheduled today!"
+                full_response = "🎉 You have no events, reminders, or tasks scheduled today!"
 
-            ChatMessage.objects.create(user=request.user, role='assistant', content=bot_response)
-            return JsonResponse({"response": bot_response})
+            ChatMessage.objects.create(user=request.user, role='assistant', content=full_response)
+            return JsonResponse({"response": full_response})
 
-        # ✨ Default fallback to GPT-4 chat
+        # ✨ Default fallback: Event Creation or Chat
         system_prompt = {
-            "event": "Assist users in creating events and scheduling their day.",
-            "agenda": "Assist users with planning today's tasks and priorities.",
-            "wellness": "Encourage wellness breaks and positive habits.",
-        }.get(mode, "Assist users with productivity.")
+            "event": "Assist users in creating events and planning their schedule.",
+            "agenda": "Assist users with organizing today's tasks.",
+            "wellness": "Encourage short wellness breaks and healthy habits.",
+        }.get(mode, "Assist users with productivity and time management.")
 
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(conversation_history)

@@ -1,4 +1,4 @@
-console.log("📅 Dashboard JS loaded!");
+console.log("🗕️ Dashboard JS loaded!");
 
 document.addEventListener('DOMContentLoaded', function () {
   // === CSRF Token Helper ===
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function () {
         activeEventId = event.id;
         modalEl.classList.remove('hidden');  // Ensure the modal is shown
         form.dataset.editing = activeEventId;  // Mark as editing
-        
+
         // Populate the modal fields with event data
         document.getElementById('event-title').value = event.title;
         document.getElementById('event-description').value = event.extendedProps.description || '';
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function () {
         activeEventId = null;
         form.reset();
         form.removeAttribute('data-editing');
-        
+
         // Set default values for a new event
         modalEl.classList.remove('hidden');
         document.getElementById('event-start').value = formatDateTimeLocal(info.date);
@@ -117,10 +117,10 @@ document.addEventListener('DOMContentLoaded', function () {
     .catch(() => alert("Server error"));
   });
 
-  // === Delete Event ===
+  // === Delete Event (no confirmation) ===
   deleteBtn?.addEventListener('click', function () {
     const editingId = form.dataset.editing;
-    if (editingId && confirm("Are you sure you want to delete this event?")) {
+    if (editingId) {
       fetch(`/delete_event/${editingId}/`, {
         method: 'POST',
         headers: { 'X-CSRFToken': window.getCSRFToken() }
@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
       .toISOString().slice(0, 16);
   }
 
-  // === Modal Close Handlers (for Tailwind modals)
+  // === Modal Close Handlers ===
   document.querySelectorAll('[data-close-modal]').forEach(btn => {
     btn.addEventListener('click', () => {
       const modal = btn.closest('.fixed');
@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // === Dropdown Toggle Logic
+  // === Dropdown Toggle Logic ===
   document.querySelectorAll('[data-dropdown-btn]').forEach(btn => {
     btn.addEventListener('click', () => {
       const type = btn.getAttribute('data-dropdown-btn');
@@ -191,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // === Add Actions
+  // === Add Actions ===
   document.querySelectorAll('[data-action="add-reminder"]').forEach(btn => {
     btn.addEventListener('click', () => {
       const modal = document.getElementById('addReminderModal');
@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // === Toggle Edit Buttons
+  // === Toggle Edit Buttons ===
   document.querySelectorAll('[data-action="toggle-task-edit"]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#task-list-wrapper .edit-task-btn, #task-list-wrapper .delete-task-btn')
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // === Handle Edit Button Clicks
+  // === Handle Edit Button Clicks ===
   document.addEventListener('click', function (e) {
     const editReminder = e.target.closest('.edit-reminder-btn');
     if (editReminder) {
@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // === Close all dropdowns on outside click
+  // === Close all dropdowns on outside click ===
   document.addEventListener('click', (e) => {
     if (!e.target.closest('[data-dropdown-btn]') && !e.target.closest('[data-dropdown-menu]')) {
       document.querySelectorAll('[data-dropdown-menu]').forEach(menu => menu.classList.add('hidden'));

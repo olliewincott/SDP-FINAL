@@ -2,53 +2,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  {% block head %}
-  <meta charset="UTF-8">
-  <title>AI Assistant – PLN AI</title>
+{% block head %}
+<meta charset="UTF-8">
+<title>AI Assistant – PLN AI</title>
 
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: { primary: '#5AC8FA' },
-          fontFamily: { sans: ['Inter', 'sans-serif'] }
-        }
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { primary: '#5AC8FA' },
+        fontFamily: { sans: ['Inter', 'sans-serif'] }
       }
     }
-  </script>
+  }
+</script>
 
-  <!-- Font Awesome + BotUI -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui.min.css"/>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui-theme-default.css"/>
+<!-- Font Awesome + BotUI -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui.min.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui-theme-default.css"/>
 
-  <style>
-    body { background-color: #111827; font-family: 'Inter', sans-serif; }
-    .botui-container { background: transparent !important; border: none !important; padding: 0 !important; font-size: 0.95rem; }
-    .botui-message-content { max-width: 80%; padding: 10px 16px; border-radius: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); animation: fadeIn 0.4s ease both; }
-    .botui-message-content.human { background-color: #5AC8FA; color: white; align-self: flex-end; }
-    .botui-message-content.bot { background-color: #f1f5f9; color: #111827; }
-    .botui-actions-text-input { background-color: #f9fafb; border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 12px; color: #111827; }
-    
-    /* ✨ New: Bullet points formatting inside bot messages */
-    .botui-message-content.bot ul {
-      list-style-type: disc;
-      margin-left: 1.5rem;
-      margin-top: 0.5rem;
-      margin-bottom: 0.5rem;
-      padding-left: 1rem;
-    }
-    .botui-message-content.bot ul li {
-      margin-bottom: 0.3rem;
-      line-height: 1.4;
-    }
-    
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  </style>
-  
-  {% endblock head %}
+<style>
+  body { background-color: #111827; font-family: 'Inter', sans-serif; }
+  .botui-container { background: transparent !important; border: none !important; padding: 0 !important; font-size: 0.95rem; }
+  .botui-message-content { max-width: 80%; padding: 12px 18px; border-radius: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); animation: fadeIn 0.4s ease both; }
+  .botui-message-content.human { background-color: #5AC8FA; color: white; align-self: flex-end; }
+  .botui-message-content.bot { background-color: #f1f5f9; color: #111827; }
+  .botui-message-content.bot p { margin-top: 0.75rem; margin-bottom: 0.75rem; line-height: 1.6; }
+  .botui-message-content.bot ul { list-style-type: disc; padding-left: 1.5rem; margin-top: 0.75rem; margin-bottom: 0.75rem; }
+  .botui-message-content.bot ul li { margin-bottom: 0.5rem; }
+  .botui-message-content.bot hr { margin: 1.5rem 0; border: none; border-top: 1px solid #ccc; }
+  .botui-message-content.bot code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; }
+  .botui-message-content.bot blockquote { background: #f1f5f9; border-left: 4px solid #5AC8FA; padding: 0.5rem 1rem; margin: 1rem 0; font-style: italic; color: #555; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+{% endblock head %}
 </head>
 
 <body class="bg-gray-900 min-h-screen">
@@ -56,10 +46,7 @@
   {% include 'includes/sidebar.html' %}
 
   <main class="flex-1 p-4 md:p-6 flex flex-col h-screen">
-
-    <!-- Chatbot Section -->
     <section class="bg-white text-gray-900 rounded-xl shadow-md flex flex-col overflow-hidden h-full">
-
       <div class="flex justify-between items-center p-6 border-b border-gray-200">
         <div class="flex-1 text-center">
           <h2 class="text-2xl font-semibold flex justify-center items-center gap-2 mb-1">
@@ -67,8 +54,6 @@
           </h2>
           <p class="text-gray-500 text-sm">Plan your day, create events, take wellness breaks, and review productivity.</p>
         </div>
-
-        <!-- 3 Dots Dropdown -->
         <div class="relative">
           <button id="options-button" class="text-gray-500 hover:text-gray-700 text-2xl">
             <i class="fas fa-ellipsis-v"></i>
@@ -97,19 +82,16 @@
           <i class="fas fa-microphone"></i>
         </button>
         <input id="custom-user-input" type="text" placeholder="What would you like to do today?"
-               class="flex-1 bg-gray-50 border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary text-gray-800 placeholder-gray-400" />
+          class="flex-1 bg-gray-50 border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary text-gray-800 placeholder-gray-400" />
         <button id="send-user-input" class="bg-primary hover:bg-blue-400 text-white px-6 rounded-lg">
           Send
         </button>
       </div>
-
     </section>
 
-    <!-- Toast -->
     <div id="toast" class="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-md hidden z-50">
       Chat cleared ✅
     </div>
-
   </main>
 </div>
 
@@ -118,142 +100,219 @@
 <script src="https://cdn.jsdelivr.net/npm/botui/build/botui.min.js"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  const botui = new BotUI('botui-app');
-  let conversationHistory = [];
-  let currentMode = 'event';
-
-  function getCSRFToken() {
-    const name = 'csrftoken';
-    return document.cookie.split(';').reduce((v,c) => {
-      const [k, val] = c.trim().split('=');
-      return k === name ? decodeURIComponent(val) : v;
-    }, '');
-  }
-
-  function scrollToBottom() {
-    const chatContainer = document.getElementById('chat-container');
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-  }
-
-  async function loadConversationHistory() {
-    fetch("{% url 'get_chat_history' %}")
-      .then(r => r.json())
-      .then(data => {
-        conversationHistory = data.history || [];
-        if (conversationHistory.length === 0) {
-          botui.message.add({ content: '👋 Hey there! Ready to plan your day?' });
-        } else {
-          conversationHistory.forEach(entry => {
-            if (entry.role === 'user') {
-              botui.message.add({ content: entry.content, human: true, cssClass: 'human' });
-            } else {
-              botui.message.add({ content: entry.content });
-            }
-          });
-        }
+  document.addEventListener('DOMContentLoaded', function () {
+    const botui = new BotUI('botui-app');
+    let conversationHistory = [];
+    let currentMode = 'event';
+    let recognition;
+    let isListening = false;
+    let capturedTranscript = "";
+  
+    function getCSRFToken() {
+      const name = 'csrftoken';
+      return document.cookie.split(';').reduce((v, c) => {
+        const [k, val] = c.trim().split('=');
+        return k === name ? decodeURIComponent(val) : v;
+      }, '');
+    }
+  
+    function scrollToBottom() {
+      const chatContainer = document.getElementById('chat-container');
+      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+    }
+  
+    async function displayTypingIndicator() {
+      const typingId = await botui.message.add({
+        type: 'html',
+        content: `
+          <div class="flex gap-1 items-center">
+            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
+            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></span>
+          </div>`
       });
-  }
-
-  async function displayBotReplySmooth(reply) {
-    const parts = reply.split(/\n{2,}/);
-    for (const part of parts) {
-      if (part.trim() !== "") {
-        const typingId = await botui.message.add({ 
-          type: 'html', 
-          content: `<div class="flex gap-1 items-center">
-                      <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
-                      <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></span>
-                      <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-300"></span>
-                    </div>`
-        });
-        await new Promise(resolve => setTimeout(resolve, 700));
-        await botui.message.remove(typingId);
-        await botui.message.add({ content: part.trim() });
-        scrollToBottom();
+      await new Promise(resolve => setTimeout(resolve, 700));
+      return typingId;
+    }
+  
+    async function loadConversationHistory() {
+      try {
+        const response = await fetch("{% url 'get_chat_history' %}");
+        const data = await response.json();
+        conversationHistory = data.history || [];
+  
+        if (conversationHistory.length === 0) {
+          await botui.message.add({ content: '👋 Hey there! Ready to plan your day?' });
+        } else {
+          for (const entry of conversationHistory) {
+            if (entry.role === 'user') {
+              await botui.message.add({ content: entry.content, human: true, cssClass: 'human' });
+            } else {
+              await botui.message.add({ content: entry.content });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading chat history:', error);
       }
     }
-  }
-
-  function sendToAssistant(message) {
-    if (!message.trim()) return;
-    currentMode = detectModeFromText(message);
-    conversationHistory.push({ role: 'user', content: message });
-
-    botui.message.add({ content: message, human: true, cssClass: 'human' });
-    document.getElementById('custom-user-input').value = '';
-    scrollToBottom();
-
-    fetch("{% url 'chatbot_response' %}", {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
-      body: JSON.stringify({ message, history: conversationHistory, mode: currentMode })
-    })
-    .then(r => r.json())
-    .then(data => {
-      const reply = data.response || "Sorry, I didn’t understand.";
-      conversationHistory.push({ role: 'assistant', content: reply });
-      displayBotReplySmooth(reply);
-    })
-    .catch(() => {
-      botui.message.add({ content: "Oops! Something went wrong." }).then(scrollToBottom);
+  
+    async function displayBotReplySmooth(reply) {
+      const parts = reply.split(/(?:<hr>|<br\s*\/?>|\n{2,})/gi);
+      for (const part of parts) {
+        if (part.trim() !== "") {
+          const typingId = await displayTypingIndicator();
+          await botui.message.remove(typingId);
+          await botui.message.add({ type: 'html', content: `<div>${part.trim()}</div>` });
+          scrollToBottom();
+        }
+      }
+    }
+  
+    function sendToAssistant(message) {
+      if (!message.trim()) return;
+      currentMode = detectModeFromText(message);
+      conversationHistory.push({ role: 'user', content: message });
+  
+      botui.message.add({ content: message, human: true, cssClass: 'human' });
+      document.getElementById('custom-user-input').value = '';
+      scrollToBottom();
+  
+      fetch("{% url 'chatbot_response' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+        body: JSON.stringify({ message, history: conversationHistory, mode: currentMode })
+      })
+        .then(r => r.json())
+        .then(data => {
+          const reply = data.response || "Sorry, I didn’t understand.";
+          conversationHistory.push({ role: 'assistant', content: reply });
+          displayBotReplySmooth(reply);
+        })
+        .catch(() => {
+          botui.message.add({ content: "Oops! Something went wrong." });
+        });
+    }
+  
+    function detectModeFromText(message) {
+      const text = message.toLowerCase();
+      if (text.includes('schedule') || text.includes('agenda') || text.includes('today')) return 'schedule';
+      if (text.includes('wellness') || text.includes('break')) return 'wellness';
+      if (text.includes('review') || text.includes('productivity')) return 'review';
+      return 'event';
+    }
+  
+    async function startMicrophoneAccess() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('🎤 Microphone access granted.');
+      } catch (error) {
+        alert('Microphone access denied. Please allow mic permissions!');
+      }
+    }
+  
+    function startOrStopVoiceRecognition() {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert('🎤 Voice recognition not supported.');
+        return;
+      }
+  
+      if (!recognition) {
+        recognition = new webkitSpeechRecognition();
+        recognition.continuous = true; // 🛠️ continuous mode on
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+  
+        recognition.onstart = function () {
+          console.log('🎤 Voice recognition started.');
+        };
+  
+        recognition.onresult = function (event) {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              transcript += event.results[i][0].transcript;
+            }
+          }
+          if (transcript.trim()) {
+            console.log('📝 Recognized:', transcript);
+            document.getElementById('custom-user-input').value = transcript.trim();
+            sendToAssistant(transcript.trim());
+          }
+        };
+  
+        recognition.onerror = function (event) {
+          console.error('Speech recognition error:', event.error);
+        };
+  
+        recognition.onend = function () {
+          console.log('🎤 Voice recognition ended.');
+          if (isListening) {
+            console.log('🔄 Restarting voice recognition...');
+            recognition.start(); // 🔁 Restart automatically
+          }
+        };
+      }
+  
+      if (!isListening) {
+        recognition.start();
+        isListening = true;
+      } else {
+        recognition.stop();
+        isListening = false;
+      }
+    }
+  
+    // Initialize
+    startMicrophoneAccess();
+    loadConversationHistory();
+  
+    document.getElementById('send-user-input').addEventListener('click', () => {
+      sendToAssistant(document.getElementById('custom-user-input').value);
     });
-  }
-
-  function detectModeFromText(message) {
-    const text = message.toLowerCase();
-    if (text.includes('schedule') || text.includes('agenda') || text.includes('today')) return 'schedule';
-    if (text.includes('wellness') || text.includes('break')) return 'wellness';
-    if (text.includes('review') || text.includes('productivity')) return 'review';
-    return 'event';
-  }
-
-  loadConversationHistory();
-
-  document.getElementById('send-user-input').addEventListener('click', () => {
-    sendToAssistant(document.getElementById('custom-user-input').value);
-  });
-  document.getElementById('custom-user-input').addEventListener('keypress', e => {
-    if (e.key === 'Enter') { e.preventDefault(); sendToAssistant(e.target.value); }
-  });
-
-  document.getElementById('voice-button').addEventListener('click', () => {
-    alert('🎤 Voice input coming soon!');
-  });
-
-  document.querySelectorAll('button[data-mode]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const mode = btn.dataset.mode;
-      currentMode = mode;
-      document.querySelectorAll('button[data-mode]').forEach(b => b.classList.remove('bg-primary', 'text-white'));
-      btn.classList.add('bg-primary', 'text-white');
-      if (mode === 'review') sendToAssistant("Review my productivity");
-      else if (mode === 'agenda') sendToAssistant("Let's plan today's tasks");
-      else if (mode === 'wellness') sendToAssistant("I need a wellness break");
-      else sendToAssistant("Create a new event");
+  
+    document.getElementById('custom-user-input').addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendToAssistant(e.target.value);
+      }
     });
-  });
-
-  document.getElementById('options-button').addEventListener('click', () => {
-    document.getElementById('options-menu').classList.toggle('hidden');
-  });
-
-  document.getElementById('clear-chat').addEventListener('click', () => {
-    fetch("{% url 'clear_chat_history' %}", { method: 'POST', headers: { 'X-CSRFToken': getCSRFToken() } })
-      .then(() => {
-        botui.message.removeAll();
-        conversationHistory = [];
-        botui.message.add({ content: '👋 Hey there! Ready to plan your day?' });
-        document.getElementById('options-menu').classList.add('hidden');
-
-        const toast = document.getElementById('toast');
-        toast.classList.remove('hidden');
-        setTimeout(() => { toast.classList.add('hidden'); }, 3000);
+  
+    document.getElementById('voice-button').addEventListener('click', startOrStopVoiceRecognition);
+  
+    document.querySelectorAll('button[data-mode]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        currentMode = mode;
+        document.querySelectorAll('button[data-mode]').forEach(b => b.classList.remove('bg-primary', 'text-white'));
+        btn.classList.add('bg-primary', 'text-white');
+        if (mode === 'review') sendToAssistant("Review my productivity");
+        else if (mode === 'agenda') sendToAssistant("Let's plan today's tasks");
+        else if (mode === 'wellness') sendToAssistant("I need a wellness break");
+        else sendToAssistant("Create a new event");
       });
+    });
+  
+    document.getElementById('options-button').addEventListener('click', () => {
+      document.getElementById('options-menu').classList.toggle('hidden');
+    });
+  
+    document.getElementById('clear-chat').addEventListener('click', () => {
+      fetch("{% url 'clear_chat_history' %}", { method: 'POST', headers: { 'X-CSRFToken': getCSRFToken() } })
+        .then(() => {
+          botui.message.removeAll();
+          conversationHistory = [];
+          botui.message.add({ content: '👋 Hey there! Ready to plan your day?' });
+          document.getElementById('options-menu').classList.add('hidden');
+          const toast = document.getElementById('toast');
+          toast.classList.remove('hidden');
+          setTimeout(() => { toast.classList.add('hidden'); }, 3000);
+        });
+    });
   });
+  </script>
 
-});
-</script>
 {% endblock %}
 </body>
 </html>
