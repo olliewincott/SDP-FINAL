@@ -49,24 +49,22 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!button) return;
     const reminderId = button.dataset.id;
 
-    // Delete Reminder
+    // Delete Reminder (no confirmation)
     if (button.classList.contains('delete-reminder-btn')) {
-      if (confirm("Delete this reminder?")) {
-        fetch(`/delete_reminder/${reminderId}/`, {
-          method: 'POST',
-          headers: { 'X-CSRFToken': window.getCSRFToken() }
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            const li = reminderList.querySelector(`[data-reminder-id="${reminderId}"]`);
-            if (li) li.remove();
-          } else {
-            alert(data.error || 'Delete failed.');
-          }
-        })
-        .catch(() => alert("Error deleting reminder."));
-      }
+      fetch(`/delete_reminder/${reminderId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': window.getCSRFToken() }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const li = reminderList.querySelector(`[data-reminder-id="${reminderId}"]`);
+          if (li) li.remove();
+        } else {
+          alert(data.error || 'Delete failed.');
+        }
+      })
+      .catch(() => alert("Error deleting reminder."));
     }
 
     // Edit Reminder
@@ -86,26 +84,25 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       deleteBtn.style.display = 'inline-block';
 
+      // Delete from modal (no confirmation)
       deleteBtn.onclick = function () {
-        if (confirm("Delete this reminder?")) {
-          fetch(`/delete_reminder/${reminderId}/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': window.getCSRFToken() }
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.success) {
-              bootstrap.Modal.getInstance(reminderModalEl).hide();
-              reminderForm.reset();
-              reminderForm.removeAttribute('data-editing');
-              const li = reminderList.querySelector(`[data-reminder-id="${reminderId}"]`);
-              if (li) li.remove();
-            } else {
-              alert(data.error || "Delete failed");
-            }
-          })
-          .catch(() => alert("Error deleting reminder."));
-        }
+        fetch(`/delete_reminder/${reminderId}/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': window.getCSRFToken() }
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            bootstrap.Modal.getInstance(reminderModalEl).hide();
+            reminderForm.reset();
+            reminderForm.removeAttribute('data-editing');
+            const li = reminderList.querySelector(`[data-reminder-id="${reminderId}"]`);
+            if (li) li.remove();
+          } else {
+            alert(data.error || "Delete failed");
+          }
+        })
+        .catch(() => alert("Error deleting reminder."));
       };
 
       // Populate form values

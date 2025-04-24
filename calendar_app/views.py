@@ -623,6 +623,11 @@ def add_reminder(request):
 
         try:
             parsed_time = django_parse_datetime(reminder_time)
+
+            # Ensure datetime is timezone-aware if it's naive
+            if parsed_time and is_naive(parsed_time):
+                parsed_time = make_aware(parsed_time)
+
             reminder = Reminder.objects.create(
                 user=request.user,
                 event=event,
@@ -634,7 +639,7 @@ def add_reminder(request):
                 'reminder': {
                     'id': reminder.id,
                     'title': event.title,
-                    'time': reminder.reminder_time.isoformat()
+                    'reminder_time': reminder.reminder_time.isoformat()
                 }
             })
         except Exception as e:
