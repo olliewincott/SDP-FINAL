@@ -88,6 +88,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
   window.reloadTasks();
 
+  // 🧼 Task delete logic — instant, no confirmation
+  document.addEventListener('click', function (e) {
+    const deleteBtn = e.target.closest('.delete-task-btn');
+    if (deleteBtn) {
+      const taskId = deleteBtn.dataset.id;
+      fetch(`/delete_task/${taskId}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCSRFToken()
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const li = document.querySelector(`[data-task-id="${taskId}"]`);
+          if (li) li.remove();
+        } else {
+          console.error("Delete failed:", data.error || "Unknown error");
+        }
+      })
+      .catch(err => console.error("Error deleting task:", err));
+    }
+  });
+
   function getCSRFToken() {
     const name = 'csrftoken';
     const cookies = document.cookie.split(';');

@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', function () {
   const taskForm = document.getElementById('addTaskForm');
   const taskList = document.getElementById('task-list');
@@ -50,25 +49,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const taskId = button.dataset.id;
 
     if (button.classList.contains('delete-task-btn')) {
-      if (confirm("Delete this task?")) {
-        fetch(`/delete_task/${taskId}/`, {
-          method: 'POST',
-          headers: { 'X-CSRFToken': window.getCSRFToken() }
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            const li = taskList.querySelector(`[data-task-id="${taskId}"]`);
-            if (li) li.remove();
-            if (!taskList.querySelector('li')) {
-              taskList.innerHTML = '<li class="text-muted">No tasks for today.</li>';
-            }
-          } else {
-            alert(data.error || 'Delete failed.');
+      fetch(`/delete_task/${taskId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': window.getCSRFToken() }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const li = taskList.querySelector(`[data-task-id="${taskId}"]`);
+          if (li) li.remove();
+          if (!taskList.querySelector('li')) {
+            taskList.innerHTML = '<li class="text-muted">No tasks for today.</li>';
           }
-        })
-        .catch(() => alert('Failed to delete task.'));
-      }
+        } else {
+          alert(data.error || 'Delete failed.');
+        }
+      })
+      .catch(() => alert('Failed to delete task.'));
     }
 
     if (button.classList.contains('edit-task-btn')) {
@@ -88,27 +85,26 @@ document.addEventListener('DOMContentLoaded', function () {
           modalFooter.insertBefore(deleteBtn, modalFooter.firstChild);
         }
         deleteBtn.style.display = 'inline-block';
+
         deleteBtn.onclick = function () {
           const editingId = taskForm.dataset.editing;
-          if (confirm("Delete this task?")) {
-            fetch(`/delete_task/${editingId}/`, {
-              method: 'POST',
-              headers: { 'X-CSRFToken': window.getCSRFToken() }
-            })
-            .then(res => res.json())
-            .then(data => {
-              if (data.success) {
-                taskModalEl.classList.add('hidden');
-                taskForm.reset();
-                taskForm.removeAttribute('data-editing');
-                const li = taskList.querySelector(`[data-task-id="${editingId}"]`);
-                if (li) li.remove();
-              } else {
-                alert(data.error || "Delete failed");
-              }
-            })
-            .catch(() => alert("Error deleting task."));
-          }
+          fetch(`/delete_task/${editingId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': window.getCSRFToken() }
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              taskModalEl.classList.add('hidden');
+              taskForm.reset();
+              taskForm.removeAttribute('data-editing');
+              const li = taskList.querySelector(`[data-task-id="${editingId}"]`);
+              if (li) li.remove();
+            } else {
+              alert(data.error || "Delete failed");
+            }
+          })
+          .catch(() => alert("Error deleting task."));
         };
 
         document.getElementById('task-title').value = button.dataset.title;
