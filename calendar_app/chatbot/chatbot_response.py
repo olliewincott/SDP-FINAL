@@ -26,46 +26,68 @@ def chatbot_response_logic(request):
     # --- EVENT LOGIC ---
         event_patterns = [
             r"(?:add|schedule|create)\s+(?:an?\s+)?(?:event|meeting|session|activity)?\s*(?:called|named|for|about)?\s*[\"']?(.*?)[\"']?\s+(?:from|at)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))\s*(?:to\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)))?",
-            r"(?:add|create|schedule)\s+(?:an?\s+)?(?:event|meeting|session|activity)?\s*(?:for|about|called)?\s+[\"']?(.*?)[\"']?\s+(?:at|from)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))",
-            r"(?:let's|can\syou|please)\s+(?:schedule|add)\s+(?:an?\s+)?(?:event|meeting|session|activity)?\s*(?:for|about|called)?\s+[\"']?(.*?)[\"']?\s+(?:at|from)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))"
+            r"(?:let's|can you|please)?\s*(?:schedule|add|create)\s+(?:an?\s+)?(?:event|meeting|session|activity)?\s*(?:called|named|for|about)?\s*[\"']?(.*?)[\"']?\s+(?:at|from)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))\s*(?:to\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)))?"
         ]
+
+        def clean_title(raw_title):
+            cleaned = re.sub(r"\b(event|meeting|session|activity|for|about|called|named|of|on|at|to|from|the|a|an)\b", "", raw_title, flags=re.IGNORECASE)
+            cleaned = re.sub(r"\s+", " ", cleaned).strip()
+            return cleaned.capitalize()
+
 
         for pattern in event_patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 groups = match.groups()
-                raw_title = groups[0].strip()
-                title = re.sub(r"^(event|meeting|session|activity)?\s*(for|about|called)?\s*", "", raw_title, flags=re.IGNORECASE).strip().capitalize()
-                time_str = f"{groups[1]} to {groups[2]}" if len(groups) == 3 else groups[1]
+                raw_title = groups[0].strip() if groups[0] else ""
+                title = clean_title(raw_title)
+                start_time = groups[1].strip() if len(groups) > 1 else None
+                end_time = groups[2].strip() if len(groups) > 2 else None
+                if start_time and end_time:
+                    time_str = f"{start_time} to {end_time}"
+                else:
+                    time_str = start_time
                 return ('event', 'create', {
                     'title': title,
                     'time': time_str,
                     'original_text': text
                 })
 
-        rename_event = re.match(r"(rename|change)\s+(event|meeting)?\s*[\"']?(.*?)[\"']?\s+to\s+[\"']?(.*?)[\"']?$", text)
+        rename_event = re.match(r"(rename|change)\s+(event|meeting|session|activity)?\s*[\"']?(.*?)['\"]?\s+to\s+[\"']?(.*?)['\"]?", text, re.IGNORECASE)
         if rename_event:
-            return ('event', 'rename', {'old_title': rename_event.group(3).strip(), 'new_title': rename_event.group(4).strip()})
-
-        move_range = re.match(r"(?:move|reschedule|update)\s+(event|meeting)?\s*[\"']?(.*?)['\"]?\s+.*?(\d{1,2}(?::\d{2})?\s*(?:am|pm))\s+to\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))", text)
-        if move_range:
-            return ('event', 'reschedule', {
-                'title': move_range.group(2).strip(),
-                'new_time': f"{move_range.group(3)} to {move_range.group(4)}",
-                'has_end_time': True
+            return ('event', 'rename', {
+                'old_title': clean_title(rename_event.group(3)),
+                'new_title': clean_title(rename_event.group(4))
             })
 
-        move_single = re.match(r"(?:move|reschedule|update)\s+(event|meeting)?\s*[\"']?(.*?)['\"]?\s+(?:to|at)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))", text)
-        if move_single:
+
+        move_event = re.match(r"(?:move|reschedule|update)\s+(?:event|meeting|session|activity)?\s*[\"']?(.*?)['\"]?\s+(?:from|at|to)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))\s*(?:to\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)))?", text, re.IGNORECASE)
+        if move_event:
+            raw_title = move_event.group(1).strip()
+            raw_title = re.split(r",|i want|i'd like|i need|the time|to be|starting", raw_title, 1)[0].strip()
+            title = clean_title(raw_title)
+            start_time = move_event.group(2)
+            end_time = move_event.group(3)
+         
+            if end_time:
+                time_str = f"{start_time} to {end_time}"
+                has_end_time = True
+            else:
+                time_str = start_time
+                has_end_time = False
+
             return ('event', 'reschedule', {
-                'title': move_single.group(2).strip(),
-                'new_time': move_single.group(3).strip(),
-                'has_end_time': False
+                'title': title,
+                'new_time': time_str,
+                'has_end_time': has_end_time
             })
 
-        delete_event = re.match(r"(?:delete|remove|cancel)\s+(event|meeting)?\s*[\"']?(.*?)['\"]?$", text)
+        delete_event = re.match(r"(?:delete|remove|cancel)\s+(?:event|meeting|session|activity)?\s*[\"']?(.*?)['\"]?$", text, re.IGNORECASE)
         if delete_event:
-            return ('event', 'delete', {'title': delete_event.group(2).strip()})
+            return ('event', 'delete', {
+                'title': clean_title(delete_event.group(1))
+            })
+
 
     # --- TASK LOGIC ---
         add_task = re.match(r"(?:add|create)\s+(?:a\s+)?task\s+['\"]?(.*?)['\"]?(?:\s+due\s+(.*))?$", text)
