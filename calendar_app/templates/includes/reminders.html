@@ -9,7 +9,7 @@
         <div>
           <p class="text-sm font-medium text-gray-800 mb-1">
             <i class="fas fa-bell text-yellow-400 mr-1"></i>
-            {{ reminder.event.title }}
+            {{ reminder.event.title|default:reminder.custom_title }}
           </p>
           <p class="text-xs text-gray-500">{{ reminder.reminder_time|date:"M j, g:i A" }}</p>
         </div>
@@ -20,10 +20,11 @@
             class="text-indigo-600 hover:text-indigo-800 text-sm edit-reminder-btn hidden"
             title="Edit"
             data-id="{{ reminder.id }}"
-            data-title="{{ reminder.event.title }}"
+            data-title="{{ reminder.event.title|default:reminder.custom_title }}"
             data-time="{{ reminder.reminder_time|date:'Y-m-d\\TH:i' }}"
-            data-event-id="{{ reminder.event.id }}"
-          >
+            {% if reminder.event %}
+              data-event-id="{{ reminder.event.id }}"
+            {% endif %}>
             <i class="fas fa-pen"></i>
           </button>
           <button

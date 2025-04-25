@@ -100,7 +100,7 @@ def dashboard(request):
         end_of_day = make_aware(end_of_day)
 
     reminders = Reminder.objects.filter(
-        event__user=request.user,
+        user=request.user,
         reminder_time__range=(start_of_day, end_of_day)
     ).order_by('reminder_time')
 

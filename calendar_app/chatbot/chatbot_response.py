@@ -21,96 +21,115 @@ def chatbot_response_logic(request):
         return "Ollie"  # Default to Ollie since we know the username
 
     def parse_intent(text):
-        text = text.lower()
-        
-        # Event Creation patterns
+        text = text.lower().strip()
+
+    # --- EVENT LOGIC ---
         event_patterns = [
-            # Pattern for time range with 'to'
-            r"(?:add|schedule|create)\s+[\"']?(.*?)[\"']?\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))\s+to\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))",
-            # Basic event creation
-            r"(?:create|add|schedule)\s+[\"']?(.*?)[\"']?\s+(?:at|from)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))",
-            # Natural language patterns
-            r"(?:let's|can\syou|please)\s+(?:schedule|add)\s+[\"']?(.*?)[\"']?\s+(?:at|from)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))"
+            r"(?:add|schedule|create)\s+(?:an?\s+)?(?:event|meeting|session|activity)?\s*(?:called|named|for|about)?\s*[\"']?(.*?)[\"']?\s+(?:from|at)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))\s*(?:to\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)))?",
+            r"(?:add|create|schedule)\s+(?:an?\s+)?(?:event|meeting|session|activity)?\s*(?:for|about|called)?\s+[\"']?(.*?)[\"']?\s+(?:at|from)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))",
+            r"(?:let's|can\syou|please)\s+(?:schedule|add)\s+(?:an?\s+)?(?:event|meeting|session|activity)?\s*(?:for|about|called)?\s+[\"']?(.*?)[\"']?\s+(?:at|from)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))"
         ]
 
-        # Event rename
-        rename_match = re.match(r"(rename|change)\s+(event|meeting)?\s*[\"']?(.*?)[\"']?\s+to\s+[\"']?(.*?)[\"']?$", text)
-        if rename_match:
-            old_title = rename_match.group(3).strip()
-            new_title = rename_match.group(4).strip()
-            return ('event', 'rename', {'old_title': old_title, 'new_title': new_title})
-
-        # Event move/reschedule with time range
-        move_range_match = re.match(
-            r"(?:move|reschedule|update)\s+(event|meeting)?\s*[\"']?(.*?)[\"']?\s+(?:to|at|from)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm))\s+to\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))",
-            text
-        )
-        if move_range_match:
-            title = move_range_match.group(2).strip()
-            start_time = move_range_match.group(3).strip()
-            end_time = move_range_match.group(4).strip()
-            return ('event', 'reschedule', {
-                'title': title,
-                'new_time': f"{start_time} to {end_time}",
-                'has_end_time': True
-            })
-
-        # Event move/reschedule single time
-        move_match = re.match(
-            r"(?:move|reschedule|update)\s+(event|meeting)?\s*[\"']?(.*?)[\"']?\s+(?:to|at)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))",
-            text
-        )
-        if move_match:
-            title = move_match.group(2).strip()
-            time_str = move_match.group(3).strip()
-            return ('event', 'reschedule', {
-                'title': title,
-                'new_time': time_str,
-                'has_end_time': False
-            })
-
-        # Event delete
-        delete_match = re.match(r"(delete|remove|cancel)\s+(event|meeting)?\s*[\"']?(.*?)[\"']?$", text)
-        if delete_match:
-            title = delete_match.group(3).strip()
-            return ('event', 'delete', {'title': title})
-
-        # Check for event creation patterns
         for pattern in event_patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 groups = match.groups()
-                title = groups[0].strip() if groups[0] else None
-                
-                # Handle time range pattern
-                if len(groups) == 3:  # Pattern with start and end time
-                    time_str = f"{groups[1]} to {groups[2]}"
-                else:  # Pattern with single time
-                    time_str = groups[1] if len(groups) > 1 else None
-
+                raw_title = groups[0].strip()
+                title = re.sub(r"^(event|meeting|session|activity)?\s*(for|about|called)?\s*", "", raw_title, flags=re.IGNORECASE).strip().capitalize()
+                time_str = f"{groups[1]} to {groups[2]}" if len(groups) == 3 else groups[1]
                 return ('event', 'create', {
                     'title': title,
                     'time': time_str,
                     'original_text': text
                 })
 
-        # Check Schedule
-        if any(phrase in text for phrase in ["schedule", "what do i have", "what's planned", "today"]):
+        rename_event = re.match(r"(rename|change)\s+(event|meeting)?\s*[\"']?(.*?)[\"']?\s+to\s+[\"']?(.*?)[\"']?$", text)
+        if rename_event:
+            return ('event', 'rename', {'old_title': rename_event.group(3).strip(), 'new_title': rename_event.group(4).strip()})
+
+        move_range = re.match(r"(?:move|reschedule|update)\s+(event|meeting)?\s*[\"']?(.*?)['\"]?\s+.*?(\d{1,2}(?::\d{2})?\s*(?:am|pm))\s+to\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))", text)
+        if move_range:
+            return ('event', 'reschedule', {
+                'title': move_range.group(2).strip(),
+                'new_time': f"{move_range.group(3)} to {move_range.group(4)}",
+                'has_end_time': True
+            })
+
+        move_single = re.match(r"(?:move|reschedule|update)\s+(event|meeting)?\s*[\"']?(.*?)['\"]?\s+(?:to|at)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))", text)
+        if move_single:
+            return ('event', 'reschedule', {
+                'title': move_single.group(2).strip(),
+                'new_time': move_single.group(3).strip(),
+                'has_end_time': False
+            })
+
+        delete_event = re.match(r"(?:delete|remove|cancel)\s+(event|meeting)?\s*[\"']?(.*?)['\"]?$", text)
+        if delete_event:
+            return ('event', 'delete', {'title': delete_event.group(2).strip()})
+
+    # --- TASK LOGIC ---
+        add_task = re.match(r"(?:add|create)\s+(?:a\s+)?task\s+['\"]?(.*?)['\"]?(?:\s+due\s+(.*))?$", text)
+        if add_task:
+            return ('task', 'create', {'title': add_task.group(1).strip(), 'due_date': add_task.group(2).strip() if add_task.group(2) else None})
+
+        update_task = re.match(r"(?:update|change|edit)\s+task\s+['\"]?(.*?)['\"]?\s+(?:to|with)\s+['\"]?(.*?)['\"]?$", text)
+        if update_task:
+            return ('task', 'update', {'old_title': update_task.group(1).strip(), 'new_title': update_task.group(2).strip()})
+
+        delete_task = re.match(r"(?:delete|remove|cancel)\s+task\s+['\"]?(.*?)['\"]?$", text)
+        if delete_task:
+            return ('task', 'delete', {'title': delete_task.group(1).strip()})
+
+    # --- REMINDER LOGIC ---
+        duration_reminder = re.match(r"(?:remind(?: me)? to )(.+?)\s+in\s+(\d+)\s*(minutes?|hours?)", text)
+        if duration_reminder:
+            title = duration_reminder.group(1).strip()
+            amount = int(duration_reminder.group(2))
+            unit = duration_reminder.group(3).lower()
+
+            now = timezone_now()
+            if "hour" in unit:
+                reminder_time = now + timedelta(hours=amount)
+            else:
+                reminder_time = now + timedelta(minutes=amount)
+
+            return ('reminder', 'create', {'title': title, 'reminder_time_object': reminder_time})
+
+        add_reminder = re.match(r"(?:add|create)\s+(?:a\s+)?reminder\s+['\"]?(.*?)['\"]?(?:\s+at\s+(.*))?$", text)
+        if add_reminder:
+            return ('reminder', 'create', {
+                'title': add_reminder.group(1).strip(),
+                'time': add_reminder.group(2).strip() if add_reminder.group(2) else None
+            })
+
+        delete_reminder = re.match(r"(?:delete|remove|cancel)\s+reminder\s+['\"]?(.*?)['\"]?$", text)
+        if delete_reminder:
+            return ('reminder', 'delete', {'title': delete_reminder.group(1).strip()})
+        # Handle natural GPT-style reminders (e.g., "Scheduled a break at 9 PM")
+        gpt_reminder_patterns = [
+            r"(?:scheduled|set|added)\s+(?:a\s+)?(?:reminder|break|alarm)?\s*(?:for\s+)?(.+?)\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))",
+            r"(?:reminder|alarm)\s+set\s+for\s+(.+?)\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))",
+            r"(?:i(?:'ve)?\s+)?(?:set|created)\s+(?:a\s+)?reminder\s+for\s+(.+?)\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))"
+        ]
+
+        for pattern in gpt_reminder_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:   
+                title = match.group(1).strip()
+                time_str = match.group(2).strip()
+                return ('reminder', 'create', {'title': title, 'time': time_str})
+
+
+    # --- SCHEDULE / WELLNESS ---
+        if any(kw in text for kw in ["schedule", "what do i have", "what's planned", "today", "plan my day"]):
             return ('schedule', 'view', None)
 
-        # Task Creation
-        task_match = re.match(r"(add|create)\s+task\s+(.*?)(?:\s+due\s+(.*)|$)", text)
-        if task_match:
-            _, title, due_date = task_match.groups()
-            return ('task', 'create', {'title': title, 'due_date': due_date})
-
-        # Wellness Check
-        if "wellness" in text or "wellbeing" in text or "how am i doing" in text:
+        if any(w in text for w in ["wellness", "wellbeing", "how am i doing", "health stats"]):
             return ('wellness', 'check', None)
 
         return None
     
-    def create_event(user, title, time_str, original_text=None):
+    def create_event(request, user, title, time_str, original_text=None):
         try:
             now = timezone_now()
             
@@ -202,6 +221,8 @@ def chatbot_response_logic(request):
                 end_time=end_time
             )
 
+            request.session['last_created_event_id'] = event.id
+
             # Add default category
             default_category, _ = Category.objects.get_or_create(
                 name="General",
@@ -219,6 +240,14 @@ def chatbot_response_logic(request):
         except Exception as e:
             logger.error(f"Error creating event: {e}")
             return "Sorry, I couldn't create the event. Please try again."
+        
+    def normalize_time_string(raw_time):
+        s = raw_time.strip().lower().replace(" ", "")
+        if re.match(r"^\d{1,2}(am|pm)$", s):
+            s = s[:-2] + ":00 " + s[-2:].upper()
+        elif re.match(r"^\d{1,2}:\d{2}(am|pm)$", s):
+            s = s[:-2] + " " + s[-2:].upper()
+        return s
 
     def get_schedule_summary():
         today = timezone_now().date()
@@ -240,6 +269,30 @@ def chatbot_response_logic(request):
         data = json.loads(request.body)
         user_message = data.get("message", "").strip()
 
+        yes_patterns = ['yes', 'yes please', 'sure', 'ok', 'okay', 'yeah', 'please do']
+        if user_message.lower() in yes_patterns:
+            last_event_id = request.session.get('last_created_event_id')
+            if last_event_id:
+                try:
+                    event = CalendarEvent.objects.get(id=last_event_id, user=request.user)
+                    reminder_time = event.start_time - timedelta(minutes=10)
+                    Reminder.objects.create(
+                        user=request.user,
+                        event=event,
+                        reminder_time=reminder_time
+                    )
+                    del request.session['last_created_event_id']
+                    response = f"🔔 Reminder set for **'{event.title}'** at **{reminder_time.strftime('%I:%M %p')}**."
+                    ChatMessage.objects.create(
+                        user=request.user,
+                        role='assistant',
+                        content=response,
+                        timestamp=timezone_now()
+                    ) 
+                    return JsonResponse({"response": response})     
+                except CalendarEvent.DoesNotExist:
+                    pass
+
         if not user_message:
             return JsonResponse({"error": "Empty message"}, status=400)
 
@@ -254,6 +307,7 @@ def chatbot_response_logic(request):
                         response = "What event would you like to schedule?"
                     else:
                         response = create_event(
+                            request,
                             request.user,
                             details['title'],
                             details.get('time'),
@@ -278,7 +332,8 @@ def chatbot_response_logic(request):
                         response = f"❌ Couldn't find an event titled '{old}' for today."
 
                 elif category == 'reschedule':
-                    title = details['title']
+                    raw_title = details['title']
+                    title = re.sub(r"^(event|meeting|session|activity)?\s*(for|about|called)?\s*", "", raw_title, flags=re.IGNORECASE).strip().capitalize()
                     new_time_str = details['new_time']
                     has_end_time = details.get('has_end_time', False)
                     
@@ -368,8 +423,13 @@ def chatbot_response_logic(request):
                         response = f"❌ Couldn't find an event titled '{title}' for today."
 
                 elif category == 'delete':
-                    title = details['title']
-                    event = CalendarEvent.objects.filter(
+                    raw_title = details['title']
+                    if raw_title:
+                        title = re.sub(r"\b(event|meeting|session|activity)\b", "", raw_title, flags=re.IGNORECASE).strip().capitalize()
+                    else:
+                        title = ''
+                    if title:
+                        event = CalendarEvent.objects.filter(
                         user=request.user, 
                         title__iexact=title,
                         start_time__date=timezone_now().date()
@@ -382,20 +442,69 @@ def chatbot_response_logic(request):
                     else:
                         response = f"❌ Couldn't find an event titled '{title}' for today."
 
-            elif action == 'schedule':
-                response = get_schedule_summary()
+            
             elif action == 'task':
                 if category == 'create' and details.get('title'):
+                    title = details['title']
+                    due_date_str = details.get('due_date')
+                    
+                    try:
+                        due_date = make_aware(datetime.strptime(due_date_str, "%Y-%m-%d %H:%M")) if due_date_str else timezone_now()
+                    except Exception as e:
+                        logger.warning(f"Invalid due date format. Defaulting to now. Error: {e}")
+                        due_date = timezone_now()
+
                     task = Task.objects.create(
                         user=request.user,
-                        title=details['title'],
+                        title=title,
                         description="Task created via AI Assistant",
                         completed=False,
-                        due_date=make_aware(datetime.strptime(details['due_date'], "%Y-%m-%d %H:%M")) if details.get('due_date') else None
+                        due_date=due_date
                     )
-                    response = f"✅ Task '{task.title}' created successfully!"
+                    response = f"✅ Task '{task.title}' created for {due_date.strftime('%A, %B %d at %I:%M %p')}."
                 else:
                     response = "❌ Invalid task details provided."
+
+
+            elif action == 'reminder':
+                if category == 'create' and details.get('title'):
+                    title = details['title']
+                    time_str = details.get('time')
+
+                    if not time_str:
+                        response = "⏰ Please include a time for the reminder, like 'add reminder to drink water at 4:30 PM'."
+                    else:
+                        try:
+                            logger.info(f"Received reminder: '{title}' at '{time_str}'")
+                            today = timezone_now().date()
+
+                            time_str = time_str.strip().lower().replace(" ", "")
+                            if re.match(r"^\d{1,2}(am|pm)$", time_str):
+                                time_str = time_str[:-2] + ":00 " + time_str[-2:].upper()
+                            elif re.match(r"^\d{1,2}:\d{2}(am|pm)$", time_str):
+                                time_str = time_str[:-2] + " " + time_str[-2:].upper()
+
+                            
+                            parsed_time = datetime.strptime(time_str, "%I:%M %p")
+                            reminder_time = make_aware(datetime.combine(today, parsed_time.time()))
+
+                            reminder = Reminder.objects.create(
+                                user=request.user,
+                                custom_title=title,
+                                reminder_time=reminder_time,
+                                event=None
+                            )
+                            logger.info(f"✅ Reminder created: {reminder}")
+
+                            response = f"🔔 Reminder for **'{title}'** set at **{reminder_time.strftime('%I:%M %p')}**."
+                        except Exception as e:
+                            logger.error(f"Reminder creation error: {e}")
+                            response = "❌ I couldn’t understand the time. Try 'add reminder to take meds at 5 PM'."
+
+                else:
+                    response = "❌ Invalid reminder format. Please include a title and a time like 'add reminder to call mom at 6 PM'."
+                
+
             elif action == 'wellness':
                 today = timezone_now().date()
                 wellness, _ = DailyWellness.objects.get_or_create(
@@ -469,7 +578,38 @@ def chatbot_response_logic(request):
         )
         
         bot_reply = response["choices"][0]["message"]["content"].strip()
-        
+        intent_after_gpt = parse_intent(bot_reply)
+        if intent_after_gpt:
+            action, category, details = intent_after_gpt
+
+            if action == 'reminder' and category == 'create':
+                try:
+                    title = details['title']
+                    time_str = details['time']
+
+                    if title and time_str:
+                        today = timezone_now().date()
+
+                        time_str = time_str.strip().lower().replace(" ", "")
+                        if re.match(r"^\d{1,2}(am|pm)$", time_str):
+                            time_str = time_str[:-2] + ":00 " + time_str[-2:].upper()
+                        elif re.match(r"^\d{1,2}:\d{2}(am|pm)$", time_str):
+                            time_str = time_str[:-2] + " " + time_str[-2:].upper()
+
+                        parsed_time = datetime.strptime(time_str, "%I:%M %p")
+                        reminder_time = make_aware(datetime.combine(today, parsed_time.time()))
+
+                        Reminder.objects.create(
+                            user=request.user,
+                            custom_title=title,
+                            reminder_time=reminder_time,
+                            event=None
+                        )
+                        logger.info(f"✅ Reminder created after GPT fallback: {title} at {reminder_time}")
+                except Exception as e:
+                    logger.error(f"❌ Failed to create reminder after GPT fallback: {e}")
+
+
         ChatMessage.objects.create(
             user=request.user,
             role='assistant',
@@ -479,6 +619,7 @@ def chatbot_response_logic(request):
         
         return JsonResponse({"response": bot_reply})
 
+               
     except Exception as e:
         logger.error(f"Error in chatbot logic: {str(e)}")
         return JsonResponse(

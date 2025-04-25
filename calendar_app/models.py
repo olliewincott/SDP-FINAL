@@ -29,12 +29,13 @@ class EventCategory(models.Model):
         unique_together = ('event', 'category')
 
 class Reminder(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)  # Add this line
-    event = models.ForeignKey(CalendarEvent, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    event = models.ForeignKey(CalendarEvent, on_delete=models.CASCADE, null=True, blank=True)
+    custom_title = models.CharField(max_length=255, null=True, blank=True)
     reminder_time = models.DateTimeField()
 
     def __str__(self):
-        return f"Reminder for {self.event.title} at {self.reminder_time}"
+        return f"Reminder for {self.custom_title or self.event.title} at {self.reminder_time}"
 
 class TestEntry(models.Model):
     title = models.CharField(max_length=255)
