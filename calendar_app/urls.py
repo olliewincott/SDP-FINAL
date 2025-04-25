@@ -8,8 +8,7 @@ urlpatterns = [
     path('planner/', views.fullcalendar_view, name='planner'),
     path('help/', views.help, name='help'),  # Help page
     path('chatbot/', views.chatbot, name='chatbot'),  # Chatbot page
-    path('chatbot/response/', views.chatbot_response, name='chatbot_response'),  # Chatbot API
-    path('db_test/', db_test, name='db_test'),
+    path("chatbot/response/", views.chatbot_response, name="chatbot_response"),    path('db_test/', db_test, name='db_test'),
     path('add_event/', add_event, name='add_event'),
     path('delete_event/<int:event_id>/', delete_event, name='delete_event'),
     path('events/json/', views.events_json, name='events_json'),

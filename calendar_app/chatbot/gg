@@ -1,0 +1,712 @@
+import re
+import json
+import openai
+import logging
+from datetime import datetime, timedelta
+from django.http import JsonResponse
+from django.utils.timezone import now as timezone_now, make_aware
+from django.db.models import Q, Avg
+from calendar_app.models import (
+    CalendarEvent, Reminder, Task, DailyWellness, 
+    MoodEntry, Category, EventCategory, ChatMessage
+)
+
+logger = logging.getLogger(__name__)
+
+def chatbot_response_logic(request):
+    def get_user_first_name():
+        """Get user's first name, or username if first_name not available"""
+        if request.user.first_name:
+            return request.user.first_name
+        return "Ollie"  # Default to Ollie since we know the username
+
+    def parse_time_string(time_str):
+        """Parse time string and return start and end datetime objects"""
+        now = timezone_now()
+        today = now.date()
+
+        # Parse different time formats
+        time_patterns = [
+            # Format: 2 PM to 3 PM or 2 PM - 3 PM
+            r"(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?\s*(?:to|-)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?",
+            # Format: at 2 PM for 1 hour
+            r"(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?\s*(?:for\s+(\d+)\s+(?:hour|hr|hours|hrs))"
+        ]
+
+        for pattern in time_patterns:
+            match = re.search(pattern, time_str)
+            if match:
+                groups = match.groups()
+                if len(groups) == 6:  # First pattern (start and end time)
+                    start_hour = int(groups[0])
+                    start_minute = int(groups[1]) if groups[1] else 0
+                    start_ampm = groups[2].lower() if groups[2] else 'pm'
+                    end_hour = int(groups[3])
+                    end_minute = int(groups[4]) if groups[4] else 0
+                    end_ampm = groups[5].lower() if groups[5] else start_ampm
+
+                    # Convert to 24-hour format
+                    if start_ampm == 'pm' and start_hour != 12:
+                        start_hour += 12
+                    elif start_ampm == 'am' and start_hour == 12:
+                        start_hour = 0
+
+                    if end_ampm == 'pm' and end_hour != 12:
+                        end_hour += 12
+                    elif end_ampm == 'am' and end_hour == 12:
+                        end_hour = 0
+
+                    start_datetime = make_aware(datetime.combine(today, datetime.min.time().replace(hour=start_hour, minute=start_minute)))
+                    end_datetime = make_aware(datetime.combine(today, datetime.min.time().replace(hour=end_hour, minute=end_minute)))
+
+                    # If end time is before start time, assume it's for the next day
+                    if end_datetime <= start_datetime:
+                        end_datetime += timedelta(days=1)
+
+                    return start_datetime, end_datetime
+
+                elif len(groups) == 4:  # Second pattern (start time and duration)
+                    start_hour = int(groups[0])
+                    start_minute = int(groups[1]) if groups[1] else 0
+                    start_ampm = groups[2].lower() if groups[2] else 'pm'
+                    duration_hours = int(groups[3])
+
+                    # Convert to 24-hour format
+                    if start_ampm == 'pm' and start_hour != 12:
+                        start_hour += 12
+                    elif start_ampm == 'am' and start_hour == 12:
+                        start_hour = 0
+
+                    start_datetime = make_aware(datetime.combine(today, datetime.min.time().replace(hour=start_hour, minute=start_minute)))
+                    end_datetime = start_datetime + timedelta(hours=duration_hours)
+
+                    return start_datetime, end_datetime
+
+        return None, None
+    def parse_reminder_time(reminder_str):
+        """Parse reminder time string and return timedelta"""
+        reminder_patterns = [
+            r"(\d+)\s*(minute|minutes|min|mins)",
+            r"(\d+)\s*(hour|hours|hr|hrs)",
+            r"(\d+)\s*(day|days)"
+        ]
+
+        for pattern in reminder_patterns:
+            match = re.search(pattern, reminder_str.lower())
+            if match:
+                amount = int(match.group(1))
+                unit = match.group(2)
+                
+                if unit.startswith('minute'):
+                    return timedelta(minutes=amount)
+                elif unit.startswith('hour'):
+                    return timedelta(hours=amount)
+                elif unit.startswith('day'):
+                    return timedelta(days=amount)
+        
+        return None
+
+    def parse_intent(text):
+        text = text.lower()
+
+        # Schedule and Calendar Intents
+        if any(phrase in text for phrase in [
+            "schedule", "what do i have", "what's planned", "what is planned",
+            "show me my day", "tell me my day"
+        ]) and not any(phrase in text for phrase in ["add", "create", "schedule an"]):
+            return ('schedule', 'view', 'today')
+
+        # Event Creation Intent
+        event_patterns = [
+            r"(?:add|create|schedule)\s+(?:an?\s+)?event:?\s*(.*?)(?:\s+(?:from|at|time:?)\s+(.*)|$)",
+            r"(?:add|create|schedule)\s+(?:an?\s+)?appointment:?\s*(.*?)(?:\s+(?:from|at|time:?)\s+(.*)|$)"
+        ]
+        
+        for pattern in event_patterns:
+            event_match = re.match(pattern, text, re.IGNORECASE)
+            if event_match:
+                title, time_str = event_match.groups()
+                return ('event', 'add', {
+                    'title': title.strip(),
+                    'time': time_str.strip() if time_str else None
+                })
+
+        # Reminder Creation Intent
+        reminder_match = re.search(r"(?:add|create|set)\s+(?:a\s+)?reminder\s+(?:for\s+)?(.*?)(?:\s+(\d+)\s*(?:minute|hour|day)s?\s+(?:before|ahead))", text)
+        if reminder_match:
+            event_title, reminder_time = reminder_match.groups()
+            return ('reminder', 'add', {
+                'event_title': event_title.strip(),
+                'reminder_time': reminder_time.strip()
+            })
+
+        # Task Management Intents
+        task_match = re.match(r".*(add|create)\s+task\s+(.*?)(?:\s+due\s+(.*)|$)", text)
+        if task_match:
+            action, title, due_date = task_match.groups()
+            return ('task', 'add', {'title': title, 'due_date': due_date})
+
+        # Wellness and Analytics Intents
+        if "wellness" in text or "wellbeing" in text or "how am i doing" in text:
+            return ('wellness', 'status', None)
+        
+        if "analytics" in text or "statistics" in text or "progress" in text:
+            period_match = re.search(r"(last|past)\s+(\d+)\s+(day|days|week|weeks|month|months)", text)
+            if period_match:
+                _, num, unit = period_match.groups()
+                return ('analytics', 'view', f"{num} {unit}")
+            return ('analytics', 'view', '7 days')
+
+        return None
+
+    def create_event(user, title, time_str):
+        """Create a new calendar event"""
+        try:
+            if not time_str:
+                return "❌ Please specify a time for the event (e.g., 'from 2 PM to 3 PM' or 'at 3 PM for 1 hour')"
+
+            start_datetime, end_datetime = parse_time_string(time_str)
+            
+            if not start_datetime or not end_datetime:
+                return "❌ I couldn't understand the time format. Please use format like '2 PM to 3 PM' or 'at 2 PM for 1 hour'"
+
+            # Create the event
+            event = CalendarEvent.objects.create(
+                user=user,
+                title=title,
+                start_time=start_datetime,
+                end_time=end_datetime
+            )
+
+            # Format response
+            start_time_str = start_datetime.strftime("%I:%M %p")
+            end_time_str = end_datetime.strftime("%I:%M %p")
+            
+            return (
+                f"✅ Event '{title}' scheduled!\n"
+                f"📅 Time: {start_time_str} - {end_time_str}\n"
+                f"🎯 I've added this to your calendar. Would you like me to set any reminders?"
+            )
+
+        except Exception as e:
+            logger.error(f"Error creating event: {str(e)}")
+            return "❌ Sorry, I couldn't create the event. Please try again with a different format."
+
+    def create_reminder(user, event_title, reminder_time_str):
+        """Create a reminder for an existing event"""
+        try:
+            # Find the most recent future event matching the title
+            event = CalendarEvent.objects.filter(
+                user=user,
+                title__icontains=event_title,
+                start_time__gte=timezone_now()
+            ).order_by('start_time').first()
+
+            if not event:
+                return f"❌ I couldn't find any upcoming events with the title '{event_title}'"
+
+            # Parse reminder time
+            reminder_delta = parse_reminder_time(reminder_time_str)
+            if not reminder_delta:
+                return "❌ I couldn't understand the reminder time. Please specify like '30 minutes' or '1 hour'"
+
+            reminder_time = event.start_time - reminder_delta
+
+            # Check if reminder is in the past
+            if reminder_time <= timezone_now():
+                return "❌ This reminder time would be in the past. Please choose a future time."
+
+            # Create the reminder
+            reminder = Reminder.objects.create(
+                event=event,
+                reminder_time=reminder_time
+            )
+
+            # Format response
+            reminder_time_str = reminder_time.strftime("%I:%M %p")
+            event_time_str = event.start_time.strftime("%I:%M %p")
+            
+            return (
+                f"✅ Reminder set for '{event.title}'!\n"
+                f"🔔 You'll be reminded at {reminder_time_str} "
+                f"({reminder_time_str} before the event at {event_time_str})"
+            )
+
+        except Exception as e:
+            logger.error(f"Error creating reminder: {str(e)}")
+            return "❌ Sorry, I couldn't set the reminder. Please try again."
+
+    def create_task(user, title, due_date_str=None):
+        """Create a new task"""
+        try:
+            due_date = None
+            if due_date_str:
+                # Try to parse different date formats
+                date_patterns = [
+                    r"today at (\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)",
+                    r"tomorrow at (\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)",
+                    r"(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})"
+                ]
+
+                for pattern in date_patterns:
+                    match = re.search(pattern, due_date_str)
+                    if match:
+                        if "today at" in due_date_str:
+                            hour = int(match.group(1))
+                            minute = int(match.group(2)) if match.group(2) else 0
+                            ampm = match.group(3).lower()
+                            
+                            if ampm == 'pm' and hour != 12:
+                                hour += 12
+                            elif ampm == 'am' and hour == 12:
+                                hour = 0
+                                
+                            due_date = timezone_now().replace(
+                                hour=hour,
+                                minute=minute,
+                                second=0,
+                                microsecond=0
+                            )
+                        elif "tomorrow at" in due_date_str:
+                            hour = int(match.group(1))
+                            minute = int(match.group(2)) if match.group(2) else 0
+                            ampm = match.group(3).lower()
+                            
+                            if ampm == 'pm' and hour != 12:
+                                hour += 12
+                            elif ampm == 'am' and hour == 12:
+                                hour = 0
+                                
+                            due_date = (timezone_now() + timedelta(days=1)).replace(
+                                hour=hour,
+                                minute=minute,
+                                second=0,
+                                microsecond=0
+                            )
+                        else:
+                            due_date = make_aware(datetime.strptime(
+                                f"{match.group(1)} {match.group(2)}", 
+                                "%Y-%m-%d %H:%M"
+                            ))
+                        break
+
+            # Create the task
+            task = Task.objects.create(
+                user=user,
+                title=title,
+                due_date=due_date
+            )
+
+            # Format response
+            response = f"✅ Task '{title}' created successfully!"
+            if due_date:
+                response += f"\n⏰ Due: {due_date.strftime('%I:%M %p on %B %d, %Y')}"
+            
+            return response
+
+        except Exception as e:
+            logger.error(f"Error creating task: {str(e)}")
+            return "❌ Sorry, I couldn't create the task. Please try again with a different format."
+        
+    def format_time_period(current_time):
+        """Return appropriate greeting based on time of day"""
+        hour = current_time.hour
+        if 5 <= hour < 12:
+            return "morning"
+        elif 12 <= hour < 17:
+            return "afternoon"
+        elif 17 <= hour < 21:
+            return "evening"
+        else:
+            return "night"
+
+    def create_progress_bar(current, target, width=10):
+        """Create a visual progress bar"""
+        filled = int((current/target) * width) if target > 0 else 0
+        return "▓" * filled + "░" * (width - filled)
+
+    def get_schedule_summary():
+        """Get a summary of the user's schedule for today"""
+        today = timezone_now().date()
+        now = timezone_now()
+        user_name = get_user_first_name()
+        time_period = format_time_period(now)
+
+        # Get all events, excluding those that are reminders
+        events = CalendarEvent.objects.filter(
+            user=request.user,
+            start_time__date=today
+        ).exclude(
+            reminder__isnull=False
+        ).order_by('start_time')
+
+        tasks = Task.objects.filter(
+            user=request.user,
+            due_date__date=today
+        ).order_by('due_date')
+
+        reminders = Reminder.objects.filter(
+            event__user=request.user,
+            reminder_time__date=today
+        ).select_related('event').order_by('reminder_time')
+
+        if not any([events, tasks, reminders]):
+            return f"👋 Good {time_period}, {user_name}! You have a clear schedule today. Would you like to add any tasks or events?"
+
+        current_time = now.strftime("%I:%M %p")
+        parts = [f"👋 Good {time_period}, {user_name}! Here's your schedule for today (it's currently {current_time}):"]
+
+        # Organize events by time periods
+        morning_events = [e for e in events if e.start_time.hour < 12]
+        afternoon_events = [e for e in events if 12 <= e.start_time.hour < 17]
+        evening_events = [e for e in events if e.start_time.hour >= 17]
+
+        if any([morning_events, afternoon_events, evening_events]):
+            parts.append("\n📅 Your Schedule:")
+            
+            if morning_events:
+                parts.append("\n  🌅 Morning:")
+                for event in morning_events:
+                    status = "✅" if event.end_time < now else "🟢" if event.start_time <= now <= event.end_time else "⏳"
+                    time_str = f"{event.start_time.strftime('%I:%M %p')} - {event.end_time.strftime('%I:%M %p')}"
+                    parts.append(f"    {status} {event.title} ({time_str})")
+
+            if afternoon_events:
+                parts.append("\n  ☀️ Afternoon:")
+                for event in afternoon_events:
+                    status = "✅" if event.end_time < now else "🟢" if event.start_time <= now <= event.end_time else "⏳"
+                    time_str = f"{event.start_time.strftime('%I:%M %p')} - {event.end_time.strftime('%I:%M %p')}"
+                    parts.append(f"    {status} {event.title} ({time_str})")
+
+            if evening_events:
+                parts.append("\n  🌙 Evening:")
+                for event in evening_events:
+                    status = "✅" if event.end_time < now else "🟢" if event.start_time <= now <= event.end_time else "⏳"
+                    time_str = f"{event.start_time.strftime('%I:%M %p')} - {event.end_time.strftime('%I:%M %p')}"
+                    parts.append(f"    {status} {event.title} ({time_str})")
+
+        # Tasks section
+        if tasks:
+            parts.append("\n📝 Tasks for Today:")
+            completed_tasks = [t for t in tasks if t.completed]
+            pending_tasks = [t for t in tasks if not t.completed]
+
+            if pending_tasks:
+                parts.append("  To Do:")
+                for task in pending_tasks:
+                    time_str = task.due_date.strftime("%I:%M %p") if task.due_date else "No time set"
+                    parts.append(f"    ⏳ {task.title} (Due: {time_str})")
+
+            if completed_tasks:
+                parts.append("  Completed:")
+                for task in completed_tasks:
+                    parts.append(f"    ✅ {task.title}")
+
+        # Reminders section
+        upcoming_reminders = [r for r in reminders if r.reminder_time > now - timedelta(hours=1)]
+        if upcoming_reminders:
+            parts.append("\n🔔 Don't Forget:")
+            for reminder in upcoming_reminders:
+                time_str = reminder.reminder_time.strftime("%I:%M %p")
+                time_diff = reminder.reminder_time - now
+                if time_diff > timedelta(0):
+                    minutes = int(time_diff.total_seconds() / 60)
+                    if minutes < 60:
+                        time_info = f"in {minutes} minutes"
+                    else:
+                        hours = minutes // 60
+                        time_info = f"in {hours} hour{'s' if hours > 1 else ''}"
+                else:
+                    time_info = "now"
+                parts.append(f"    ⏳ {reminder.event.title} ({time_info})")
+
+        # Add a summary at the end
+        remaining_events = len([e for e in events if e.end_time > now])
+        remaining_tasks = len([t for t in tasks if not t.completed])
+        if remaining_events + remaining_tasks > 0:
+            summary = []
+            if remaining_events:
+                summary.append(f"{remaining_events} event{'s' if remaining_events > 1 else ''}")
+            if remaining_tasks:
+                summary.append(f"{remaining_tasks} task{'s' if remaining_tasks > 1 else ''}")
+            parts.append(f"\n💪 Coming up: {' and '.join(summary)}. You've got this!")
+        else:
+            parts.append("\n🌟 Great job! You've completed everything for today!")
+
+        return "\n".join(parts)
+    
+    def get_wellness_status():
+        """Get the user's wellness status and progress"""
+        user = request.user
+        today = timezone_now().date()
+        current_time = timezone_now().strftime("%I:%M %p")
+        user_name = get_user_first_name()
+        time_period = format_time_period(timezone_now())
+
+        wellness, _ = DailyWellness.objects.get_or_create(user=user, date=today)
+        
+        # Calculate streak
+        streak = 0
+        streak_date = today - timedelta(days=1)
+        while True:
+            try:
+                entry = DailyWellness.objects.get(user=user, date=streak_date)
+                if not entry.goal_completed:
+                    break
+                streak += 1
+                streak_date -= timedelta(days=1)
+            except DailyWellness.DoesNotExist:
+                break
+
+        # Get recent mood entries
+        recent_moods = MoodEntry.objects.filter(
+            user=user,
+            timestamp__date__gte=today - timedelta(days=7)
+        ).order_by('-timestamp')[:5]
+
+        parts = [f"👋 Good {time_period}, {user_name}! Here's how you're doing today (as of {current_time}):"]
+
+        # Wellness Progress with visual bars
+        parts.append("\n🎯 Today's Progress:")
+        water_bar = create_progress_bar(wellness.water_intake, wellness.water_goal)
+        breaks_bar = create_progress_bar(wellness.movement_breaks, wellness.breaks_goal)
+        meals_bar = create_progress_bar(wellness.healthy_meals, wellness.meals_goal)
+
+        parts.extend([
+            f"  💧 Water: {water_bar} {wellness.water_intake}/{wellness.water_goal} glasses" +
+            (" ✨" if wellness.water_intake >= wellness.water_goal else ""),
+            f"  🏃 Movement: {breaks_bar} {wellness.movement_breaks}/{wellness.breaks_goal} breaks" +
+            (" ✨" if wellness.movement_breaks >= wellness.breaks_goal else ""),
+            f"  🍎 Meals: {meals_bar} {wellness.healthy_meals}/{wellness.meals_goal} healthy meals" +
+            (" ✨" if wellness.healthy_meals >= wellness.meals_goal else "")
+        ])
+
+        # XP Progress bar
+        xp_bar = create_progress_bar(wellness.xp, 100, width=15)
+        parts.extend([
+            "\n🌟 Achievements:",
+            f"  🔥 Streak: {streak} days{'!' if streak > 5 else ''}",
+            f"  ⭐ Level {wellness.level}",
+            f"  ✨ XP: {xp_bar} {wellness.xp}/100"
+        ])
+
+        # Mood Trend with emojis and dates
+        if recent_moods.exists():
+            parts.append("\n😊 Recent Mood Pattern:")
+            for mood in recent_moods:
+                mood_emoji = "😊" if mood.mood_rating >= 4 else "😐" if mood.mood_rating >= 2 else "😔"
+                date_str = mood.timestamp.strftime("%a, %b %d")
+                rating_bar = "★" * mood.mood_rating + "☆" * (5 - mood.mood_rating)
+                parts.append(f"  {mood_emoji} {date_str}: {rating_bar}")
+
+        # Add encouraging message based on progress
+        total_goals = 3
+        met_goals = sum([
+            wellness.water_intake >= wellness.water_goal,
+            wellness.movement_breaks >= wellness.breaks_goal,
+            wellness.healthy_meals >= wellness.meals_goal
+        ])
+
+        if met_goals == total_goals:
+            parts.append("\n🎉 Fantastic work! You've hit all your wellness goals for today!")
+        elif met_goals > 0:
+            parts.append(f"\n💪 You're making great progress! {met_goals}/{total_goals} goals completed.")
+            remaining = total_goals - met_goals
+            parts.append(f"Just {remaining} more to go - you've got this!")
+        else:
+            parts.append("\n💫 Remember: every small step counts. Let's work on those wellness goals!")
+            if timezone_now().hour < 12:
+                parts.append("The day is still young - you've got plenty of time!")
+
+        return "\n".join(parts)
+
+    def get_analytics_summary(period_spec):
+        """Generate analytics summary for the specified period"""
+        try:
+            user_name = get_user_first_name()
+            parts = period_spec.split()
+            num = int(parts[0])
+            unit = parts[1].lower()
+            
+            if unit in ['week', 'weeks']:
+                days = num * 7
+                period_name = f"{num} week{'s' if num > 1 else ''}"
+            elif unit in ['month', 'months']:
+                days = num * 30
+                period_name = f"{num} month{'s' if num > 1 else ''}"
+            else:
+                days = num
+                period_name = f"{num} day{'s' if num > 1 else ''}"
+
+            start_date = timezone_now().date() - timedelta(days=days)
+            user = request.user
+
+            # Task completion stats
+            total_tasks = Task.objects.filter(
+                user=user,
+                due_date__date__gte=start_date
+            ).count()
+            
+            completed_tasks = Task.objects.filter(
+                user=user,
+                due_date__date__gte=start_date,
+                completed=True
+            ).count()
+
+            # Event attendance
+            events = CalendarEvent.objects.filter(
+                user=user,
+                start_time__date__gte=start_date
+            )
+            
+            total_events = events.count()
+            total_event_hours = sum(
+                (event.end_time - event.start_time).total_seconds() / 3600 
+                for event in events
+            )
+
+            # Wellness achievements
+            wellness_entries = DailyWellness.objects.filter(
+                user=user,
+                date__gte=start_date
+            )
+            
+            goals_met_days = wellness_entries.filter(goal_completed=True).count()
+            
+            # Calculate averages
+            total_entries = wellness_entries.count()
+            if total_entries > 0:
+                avg_water = sum(entry.water_intake or 0 for entry in wellness_entries) / total_entries
+                avg_breaks = sum(entry.movement_breaks or 0 for entry in wellness_entries) / total_entries
+                avg_meals = sum(entry.healthy_meals or 0 for entry in wellness_entries) / total_entries
+            else:
+                avg_water = avg_breaks = avg_meals = 0
+
+            completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+            goals_rate = (goals_met_days / days * 100)
+
+            # Create progress bars
+            def create_progress_bar(percentage, width=20):
+                filled = int((percentage/100) * width)
+                return "▓" * filled + "░" * (width - filled)
+
+            parts = [f"📊 Hi {user_name}! Here's your {period_name} overview:"]
+
+            # Task Performance with visual bar
+            task_bar = create_progress_bar(completion_rate)
+            parts.extend([
+                "\n📝 Task Completion:",
+                f"  {task_bar} {completion_rate:.1f}%",
+                f"  ✅ {completed_tasks}/{total_tasks} tasks completed"
+            ])
+
+            # Calendar Activity
+            parts.extend([
+                "\n📅 Calendar Activity:",
+                f"  • {total_events} events scheduled",
+                f"  • {total_event_hours:.1f} hours of scheduled time"
+            ])
+
+            # Wellness Achievement with visual elements
+            wellness_bar = create_progress_bar(goals_rate)
+            parts.extend([
+                "\n🌟 Wellness Achievements:",
+                f"  Daily Goals: {wellness_bar} {goals_rate:.1f}%",
+                f"  • Met all goals on {goals_met_days}/{days} days",
+                "\n  Daily Averages:",
+                f"  • 💧 Water: {avg_water:.1f} glasses",
+                f"  • 🏃 Movement: {avg_breaks:.1f} breaks",
+                f"  • 🍎 Meals: {avg_meals:.1f} healthy meals"
+            ])
+
+            # Add personalized summary
+            if completion_rate >= 80 and goals_rate >= 80:
+                parts.append("\n🎉 Outstanding performance! You're absolutely crushing it!")
+            elif completion_rate >= 60 and goals_rate >= 60:
+                parts.append("\n💪 Great work! You're maintaining a strong, consistent routine!")
+            elif completion_rate >= 40 or goals_rate >= 40:
+                parts.append("\n💫 Good progress! Keep building on these positive habits!")
+            else:
+                parts.append("\n💝 Remember: every step forward is progress. Let's keep going!")
+
+            return "\n".join(parts)
+
+        except Exception as e:
+            logger.error(f"Error generating analytics: {str(e)}")
+            return f"❌ Error generating analytics: {str(e)}"
+
+    try:
+        if request.method != "POST":
+            return JsonResponse({"error": "Invalid request method"}, status=400)
+
+        data = json.loads(request.body)
+        user_message = data.get("message", "").strip()
+
+        if not user_message:
+            return JsonResponse({"error": "Empty message"}, status=400)
+
+        # Parse intent and handle accordingly
+        intent = parse_intent(user_message)
+        if intent:
+            action, category, details = intent
+            
+            if action == 'schedule':
+                response = get_schedule_summary()
+            elif action == 'wellness':
+                response = get_wellness_status()
+            elif action == 'analytics':
+                response = get_analytics_summary(details)
+            elif action == 'event':
+                if category == 'add' and details.get('title'):
+                    response = create_event(request.user, details['title'], details.get('time', ''))
+                else:
+                    response = "❌ I couldn't understand the event details. Please try again with a title and time."
+            elif action == 'reminder':
+                if category == 'add' and details.get('event_title'):
+                    response = create_reminder(request.user, details['event_title'], details['reminder_time'])
+                else:
+                    response = "❌ I couldn't understand the reminder details. Please specify an event and reminder time."
+            elif action == 'task':
+                if category == 'add' and details.get('title'):
+                    response = create_task(request.user, details['title'], details.get('due_date'))
+                else:
+                    response = "❌ Invalid task details provided."
+            else:
+                response = "I'm not sure how to help with that. Could you rephrase?"
+
+            return JsonResponse({"response": response})
+
+        # If no specific intent is matched, use OpenAI for general conversation
+        system_prompt = (
+            "You're an advanced productivity assistant designed to help neurodivergent users "
+            "manage tasks, events, and wellbeing. You can:\n"
+            "1. Show daily schedule and tasks\n"
+            "2. Create events (e.g., 'add event: Meeting from 2 PM to 3 PM')\n"
+            "3. Create tasks (e.g., 'add task Review code due tomorrow at 5 PM')\n"
+            "4. Set reminders (e.g., 'add reminder for Meeting 30 minutes before')\n"
+            "5. Show wellness status and analytics\n"
+            "6. Provide productivity tips\n"
+            "Be supportive and empathetic in your responses."
+        )
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ]
+
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=messages,
+            max_tokens=500,
+            temperature=0.6
+        )
+        
+        bot_reply = response["choices"][0]["message"]["content"].strip()
+        ChatMessage.objects.create(user=request.user, role='assistant', content=bot_reply)
+        
+        return JsonResponse({"response": bot_reply})
+
+    except Exception as e:
+        logger.error(f"Error in chatbot logic: {str(e)}")
+        return JsonResponse({"error": f"An error occurred: {str(e)}"}, status=500)
+    

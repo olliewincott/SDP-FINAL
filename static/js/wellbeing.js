@@ -5,7 +5,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const modal = document.getElementById('wellnessGoalsModal');
   const form = document.getElementById('wellnessGoalsForm');
 
-  // Track confetti triggers persistently
   const confettiTriggered = JSON.parse(localStorage.getItem('confettiTriggered')) || {
     water: false,
     breaks: false,
@@ -28,7 +27,6 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
 
-  // Load saved level/xp initially
   const savedStats = loadLevelXP();
   updateLevelDisplay(savedStats.level, savedStats.xp);
 
@@ -47,7 +45,6 @@ document.addEventListener("DOMContentLoaded", function () {
       console.error("❌ Error fetching wellness data:", err);
     });
 
-  // Handle card clicks
   document.querySelectorAll('.wellness-card').forEach(card => {
     card.addEventListener('click', () => {
       const statType = card.dataset.type;
@@ -77,7 +74,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // Modal Handling
   if (editGoalsBtn && modal) {
     editGoalsBtn.addEventListener('click', () => {
       modal.classList.remove('hidden');
@@ -96,11 +92,9 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Modal form submit
   if (form) {
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-
       const formData = new FormData(form);
 
       fetch(window.updateWellnessGoalsUrl, {
@@ -114,9 +108,7 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(r => r.json())
         .then(data => {
           if (data.success) {
-            console.log("✅ Goals updated:", data);
             modal.classList.add('hidden');
-
             confettiTriggered.water = false;
             confettiTriggered.breaks = false;
             confettiTriggered.meals = false;
@@ -168,17 +160,25 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!confettiTriggered[type]) {
         confettiTriggered[type] = true;
         saveConfettiState();
-        if (typeof confetti === "function") {
+
+        const iconBtn = document.querySelector(`.wellness-card[data-type="${type}"] .progress-ring-icon`);
+        if (iconBtn && typeof confetti === "function") {
+          const rect = iconBtn.getBoundingClientRect();
+          const originX = (rect.left + rect.width / 2) / window.innerWidth;
+          const originY = (rect.top + rect.height / 2) / window.innerHeight;
+
           confetti({
             particleCount: 120,
             spread: 70,
-            origin: { y: 0.4 },
+            origin: { x: originX, y: originY },
             colors: ['#4cd964', '#5AC8FA', '#ffcc00']
           });
         }
       }
     } else {
       wrapper.classList.remove("complete");
+      confettiTriggered[type] = false;
+      saveConfettiState();
     }
   }
 
@@ -186,7 +186,6 @@ document.addEventListener("DOMContentLoaded", function () {
     let currentLevel = parseInt(localStorage.getItem('wellnessLevel') || '1');
     let currentXP = parseInt(localStorage.getItem('wellnessXP') || '0');
 
-    // Safety net: If backend sends new ones, update
     if (level && xp !== undefined) {
       currentLevel = level;
       currentXP = xp;
@@ -195,10 +194,8 @@ document.addEventListener("DOMContentLoaded", function () {
     if (currentXP >= 100) {
       currentLevel++;
       currentXP = 0;
-
       localStorage.setItem('wellnessLevel', currentLevel);
       localStorage.setItem('wellnessXP', currentXP);
-
       updateLevelDisplay(currentLevel, currentXP);
 
       if (typeof confetti === "function") {

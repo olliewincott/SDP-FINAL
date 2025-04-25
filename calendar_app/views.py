@@ -23,7 +23,6 @@ from django.utils.timezone import now
 from django.utils.html import escape
 from .chatbot.chatbot_response import chatbot_response_logic   # import the chatbot logic
 
-
 # Set the OpenAI API key from settings (loaded from your .env file)
 openai.api_key = settings.OPENAI_API_KEY
 
