@@ -65,6 +65,7 @@ def chatbot_response_logic(request):
         if move_event:
             raw_title = move_event.group(1).strip()
             raw_title = re.split(r",|i want|i'd like|i need|the time|to be|starting", raw_title, 1)[0].strip()
+
             title = clean_title(raw_title)
             start_time = move_event.group(2)
             end_time = move_event.group(3)
