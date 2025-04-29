@@ -150,7 +150,7 @@ def chatbot_response_logic(request):
         if any(w in text for w in ["wellness", "wellbeing", "how am i doing", "health stats"]):
             return ('wellness', 'check', None)
 
-        return None
+        return ('unknown', None, None)
     
     def create_event(request, user, title, time_str, original_text=None):
         try:
@@ -549,6 +549,37 @@ def chatbot_response_logic(request):
                     f"🏃 Movement breaks: {wellness.movement_breaks}/{wellness.breaks_goal}\n"
                     f"🥗 Healthy meals: {wellness.healthy_meals}/{wellness.meals_goal}"
                 )
+
+            elif action == 'unknown':
+                system_prompt = (
+                    "You're a friendly productivity assistant. "
+                    "When the user's input is unclear or missing important details, "
+                    "you politely ask clarifying questions. "
+                    "For example, if the user says 'add gym', you should ask 'What time would you like to schedule your gym event?'. "
+                    "Always be supportive and concise."
+                )
+
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message}
+                ]
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=messages,
+                    max_tokens=150,
+                    temperature=0.7
+                )   
+
+                bot_reply = response["choices"][0]["message"]["content"].strip()
+                
+                ChatMessage.objects.create(
+                    user=request.user,
+                    role='assistant',
+                    content=bot_reply,
+                    timestamp=timezone_now()
+                )
+                return JsonResponse({"response": bot_reply})
+
             else:
                 response = (
                     "I can help you manage your schedule and wellbeing. Try:\n"
