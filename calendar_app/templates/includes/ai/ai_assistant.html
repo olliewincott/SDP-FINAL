@@ -26,17 +26,78 @@
 
 <style>
   body { background-color: #111827; font-family: 'Inter', sans-serif; }
-  .botui-container { background: transparent !important; border: none !important; padding: 0 !important; font-size: 0.95rem; }
-  .botui-message-content { max-width: 80%; padding: 12px 18px; border-radius: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); animation: fadeIn 0.4s ease both; }
-  .botui-message-content.human { background-color: #5AC8FA; color: white; align-self: flex-end; }
-  .botui-message-content.bot { background-color: #f1f5f9; color: #111827; }
-  .botui-message-content.bot p { margin-top: 0.75rem; margin-bottom: 0.75rem; line-height: 1.6; }
-  .botui-message-content.bot ul { list-style-type: disc; padding-left: 1.5rem; margin-top: 0.75rem; margin-bottom: 0.75rem; }
-  .botui-message-content.bot ul li { margin-bottom: 0.5rem; }
-  .botui-message-content.bot hr { margin: 1.5rem 0; border: none; border-top: 1px solid #ccc; }
-  .botui-message-content.bot code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; }
-  .botui-message-content.bot blockquote { background: #f1f5f9; border-left: 4px solid #5AC8FA; padding: 0.5rem 1rem; margin: 1rem 0; font-style: italic; color: #555; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .botui-container {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    font-size: 0.95rem;
+  }
+
+  .botui-message-content {
+    max-width: 80%;
+    padding: 12px 18px;
+    border-radius: 18px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    animation: fadeIn 0.4s ease both;
+  }
+
+  .botui-message-content.human {
+    background-color: #5AC8FA;
+    color: white;
+    align-self: flex-end;
+  }
+
+  .botui-message-content.bot {
+    background-color: #f1f5f9;
+    color: #111827;
+    white-space: pre-line; /* 👈 Fixes line break rendering */
+  }
+
+  .botui-message-content.bot p {
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+  }
+
+  .botui-message-content.bot ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .botui-message-content.bot ul li {
+    margin-bottom: 0.5rem;
+  }
+
+  .botui-message-content.bot hr {
+    margin: 1.5rem 0;
+    border: none;
+    border-top: 1px solid #ccc;
+  }
+
+  .botui-message-content.bot code {
+    background: #f3f4f6;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+  }
+
+  .botui-message-content.bot blockquote {
+    background: #f1f5f9;
+    border-left: 4px solid #5AC8FA;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    font-style: italic;
+    color: #555;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 </style>
 {% endblock head %}
 </head>
@@ -164,8 +225,11 @@
         if (part.trim() !== "") {
           const typingId = await displayTypingIndicator();
           await botui.message.remove(typingId);
-          await botui.message.add({ type: 'html', content: `<div>${part.trim()}</div>` });
-          scrollToBottom();
+          await botui.message.add({
+            type: 'html',
+            content: `<div style="white-space:pre-line">${part.trim()}</div>`
+          });
+            scrollToBottom();
         }
       }
     }

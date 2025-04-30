@@ -1,47 +1,44 @@
 console.log("Tasks Page JS loaded!");
 
 document.addEventListener('DOMContentLoaded', () => {
-  window.getCSRFToken = () => 
-    document.cookie.split(';').reduce((t,c) => {
-      const [k,v] = c.trim().split('=');
-      return k==='csrftoken' ? decodeURIComponent(v) : t;
+  window.getCSRFToken = () =>
+    document.cookie.split(';').reduce((t, c) => {
+      const [k, v] = c.trim().split('=');
+      return k === 'csrftoken' ? decodeURIComponent(v) : t;
     }, '');
 
   const filterInput = document.getElementById('task-filter');
-  const sortSelect  = document.getElementById('task-sort'); // 🆕
-  const modal       = document.getElementById('addTaskModal');
-  const form        = document.getElementById('addTaskForm');
-  const saveBtn     = document.getElementById('saveTaskBtn');
-  const modalLabel  = document.getElementById('addTaskModalLabel');
+  const sortSelect = document.getElementById('task-sort');
+  const modal = document.getElementById('addTaskModal');
+  const form = document.getElementById('addTaskForm');
+  const saveBtn = document.getElementById('saveTaskBtn');
+  const modalLabel = document.getElementById('addTaskModalLabel');
   let allTasks = [];
 
-  // --- Fetch & render tasks ---
   function fetchTasks() {
     fetch(window.tasksJsonUrl)
       .then(r => r.json())
-      .then(ts => { 
-        allTasks = ts; 
-        renderTasks(ts); 
+      .then(ts => {
+        allTasks = ts;
+        renderTasks(ts);
       })
       .catch(e => console.error('Error loading tasks:', e));
   }
   fetchTasks();
 
-  // --- Render tasks list ---
   function renderTasks(tasks) {
     const filterTerm = filterInput.value.toLowerCase();
     let filtered = tasks.filter(t => t.title.toLowerCase().includes(filterTerm));
 
     const sortOrder = sortSelect?.value;
     if (sortOrder === 'asc') {
-      filtered = filtered.sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+      filtered.sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
     } else if (sortOrder === 'desc') {
-      filtered = filtered.sort((a, b) => new Date(b.due_date) - new Date(a.due_date));
+      filtered.sort((a, b) => new Date(b.due_date) - new Date(a.due_date));
     }
 
     ['incomplete', 'completed'].forEach(sec => {
-      const ul = document.getElementById(`${sec}-tasks`);
-      ul.innerHTML = '';
+      document.getElementById(`${sec}-tasks`).innerHTML = '';
     });
 
     filtered.filter(t => !t.completed).forEach(t => addItem(t, false));
@@ -71,8 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
       editBtn.innerHTML = '<i class="fas fa-pen text-indigo-600 hover:text-indigo-800"></i>';
       editBtn.className = 'edit-task-btn hidden';
       Object.assign(editBtn.dataset, {
-        id: task.id, title: task.title,
-        description: task.description || '', duedate: task.due_date
+        id: task.id,
+        title: task.title,
+        description: task.description || '',
+        duedate: task.due_date
       });
 
       const delBtn = document.createElement('button');
@@ -93,69 +92,80 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // --- Toggle complete/incomplete status ---
   function toggleStatus(id, completed) {
     fetch(window.updateTaskStatusUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.getCSRFToken() },
       body: JSON.stringify({ task_id: id, completed })
     })
-    .then(r => r.json())
-    .then(() => fetchTasks())
-    .catch(e => console.error('Error updating task:', e));
+      .then(r => r.json())
+      .then(() => fetchTasks())
+      .catch(e => console.error('Error updating task:', e));
   }
 
-  // --- Live search ---
   filterInput.addEventListener('input', () => renderTasks(allTasks));
-
-  // --- Sort select ---
   sortSelect?.addEventListener('change', () => renderTasks(allTasks));
 
-  // --- Show Add Task Modal ---
+  // Add Task buttons
   document.querySelectorAll('[data-action="add-task"]').forEach(btn => {
     btn.addEventListener('click', () => {
       form.reset();
       form.removeAttribute('data-editing');
       modalLabel.textContent = 'Add New Task';
-      saveBtn.textContent    = 'Create Task';
+      saveBtn.textContent = 'Create Task';
       modal.classList.remove('hidden');
-      document.querySelectorAll('[data-dropdown-menu="task"]').forEach(m => m.classList.add('hidden'));
+
+      // Close all dropdowns
+      document.querySelectorAll('[data-dropdown-menu]').forEach(m => m.classList.add('hidden'));
     });
   });
 
-  // --- Toggle edit/delete icons visibility ---
+  // Toggle edit/delete icons
   document.querySelectorAll('[data-action="toggle-task-edit"]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.edit-task-btn, .delete-task-btn')
         .forEach(el => el.classList.toggle('hidden'));
-      document.querySelectorAll('[data-dropdown-menu="task"]').forEach(m => m.classList.add('hidden'));
+
+      document.querySelectorAll('[data-dropdown-menu]').forEach(m => m.classList.add('hidden'));
     });
   });
 
-  // --- Edit or Delete individual Task ---
+  // Edit or Delete task
   document.addEventListener('click', e => {
     const et = e.target.closest('.edit-task-btn');
     if (et) {
       form.dataset.editing = et.dataset.id;
-      form.querySelector('#task-title').value       = et.dataset.title;
+      form.querySelector('#task-title').value = et.dataset.title;
       form.querySelector('#task-description').value = et.dataset.description;
-      form.querySelector('#task-due-date').value    = new Date(et.dataset.duedate).toISOString().slice(0, 16);
+      form.querySelector('#task-due-date').value = new Date(et.dataset.duedate).toISOString().slice(0, 16);
       modalLabel.textContent = 'Update Task';
-      saveBtn.textContent    = 'Update Task';
+      saveBtn.textContent = 'Update Task';
       modal.classList.remove('hidden');
     }
+
     const dt = e.target.closest('.delete-task-btn');
-    if (dt && confirm('Delete this task?')) {
-      toggleStatus(dt.dataset.id, false);
+    if (dt) {
+      const taskId = dt.dataset.id;
+      fetch(`/delete_task/${taskId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': window.getCSRFToken() }
+      })
+        .then(r => r.json())
+        .then(js => {
+          if (js.success) {
+            fetchTasks();
+          } else {
+            alert(js.error || 'Failed to delete task.');
+          }
+        })
+        .catch(() => alert('Server error while deleting the task.'));
     }
   });
 
-  // --- Modal close ---
   document.querySelectorAll('[data-close-modal]').forEach(btn => {
     btn.addEventListener('click', () => modal.classList.add('hidden'));
   });
 
-  // --- Submit form (create or update) ---
   form.addEventListener('submit', e => {
     e.preventDefault();
     const fd = new FormData(form);
@@ -167,30 +177,31 @@ document.addEventListener('DOMContentLoaded', () => {
       headers: { 'X-CSRFToken': window.getCSRFToken() },
       body: fd
     })
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        modal.classList.add('hidden');
-        form.reset();
-        form.removeAttribute('data-editing');
-        fetchTasks();
-      } else {
-        alert(data.error || 'Could not save task.');
-      }
-    })
-    .catch(() => alert('Server error'));
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          modal.classList.add('hidden');
+          form.reset();
+          form.removeAttribute('data-editing');
+          fetchTasks();
+        } else {
+          alert(data.error || 'Could not save task.');
+        }
+      })
+      .catch(() => alert('Server error'));
   });
 
-  // --- Handle dropdown open/close
+  // Dropdown logic for each column
   document.querySelectorAll('[data-dropdown-btn]').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       document.querySelectorAll('[data-dropdown-menu]').forEach(m => m.classList.add('hidden'));
-      const m = document.querySelector(`[data-dropdown-menu="${btn.getAttribute('data-dropdown-btn')}"]`);
-      m?.classList.toggle('hidden');
+      const menu = document.querySelector(`[data-dropdown-menu="${btn.getAttribute('data-dropdown-btn')}"]`);
+      menu?.classList.toggle('hidden');
     });
   });
-  document.addEventListener('click', () => 
-    document.querySelectorAll('[data-dropdown-menu]').forEach(m => m.classList.add('hidden'))
-  );
+
+  document.addEventListener('click', () => {
+    document.querySelectorAll('[data-dropdown-menu]').forEach(m => m.classList.add('hidden'));
+  });
 });

@@ -2,6 +2,11 @@ import re
 import json
 import openai
 import logging
+from django.utils.timezone import is_naive
+from django.utils.timezone import get_current_timezone
+from pytz import timezone
+from datetime import time  # ensure this import is added at the top
+
 from datetime import datetime, timedelta
 from django.http import JsonResponse
 from django.utils.timezone import now as timezone_now, make_aware
@@ -103,7 +108,19 @@ def chatbot_response_logic(request):
         if delete_task:
             return ('task', 'delete', {'title': delete_task.group(1).strip()})
 
-    # --- REMINDER LOGIC ---
+
+        # Match: "remind me to go to the gym at 6am"
+        direct_reminder = re.match(
+            r"(?:remind(?: me)? to )(.+?)\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))",
+            text
+        )
+        if direct_reminder:
+            return ('reminder', 'create', {
+                'title': direct_reminder.group(1).strip(),
+                'time': direct_reminder.group(2).strip()
+            })
+        
+        # Reminder: e.g., "remind me to stretch in 10 minutes"
         duration_reminder = re.match(r"(?:remind(?: me)? to )(.+?)\s+in\s+(\d+)\s*(minutes?|hours?)", text)
         if duration_reminder:
             title = duration_reminder.group(1).strip()
@@ -116,8 +133,12 @@ def chatbot_response_logic(request):
             else:
                 reminder_time = now + timedelta(minutes=amount)
 
-            return ('reminder', 'create', {'title': title, 'reminder_time_object': reminder_time})
+            return ('reminder', 'create', {
+                'title': title,
+                'time': reminder_time.strftime("%I:%M %p")  # convert to string time format
+            })
 
+        # Reminder: "add reminder 'drink water' at 5pm"
         add_reminder = re.match(r"(?:add|create)\s+(?:a\s+)?reminder\s+['\"]?(.*?)['\"]?(?:\s+at\s+(.*))?$", text)
         if add_reminder:
             return ('reminder', 'create', {
@@ -125,10 +146,25 @@ def chatbot_response_logic(request):
                 'time': add_reminder.group(2).strip() if add_reminder.group(2) else None
             })
 
+        # Reminder: "create reminder for gym for 5am"
+        reminder_for_time = re.match(
+            r"(?:add|create)\s+(?:a\s+)?reminder\s+for\s+(.+?)\s+for\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))",
+            text
+        )
+        if reminder_for_time:
+            return ('reminder', 'create', {
+                'title': reminder_for_time.group(1).strip(),
+                'time': reminder_for_time.group(2).strip()
+            })
+
+        # Reminder: "delete reminder 'meds'" or "remove reminder meds"
         delete_reminder = re.match(r"(?:delete|remove|cancel)\s+reminder\s+['\"]?(.*?)['\"]?$", text)
         if delete_reminder:
-            return ('reminder', 'delete', {'title': delete_reminder.group(1).strip()})
-        # Handle natural GPT-style reminders (e.g., "Scheduled a break at 9 PM")
+            return ('reminder', 'delete', {
+                'title': delete_reminder.group(1).strip()
+            })
+
+        # Handle natural GPT-style reminders
         gpt_reminder_patterns = [
             r"(?:scheduled|set|added)\s+(?:a\s+)?(?:reminder|break|alarm)?\s*(?:for\s+)?(.+?)\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))",
             r"(?:reminder|alarm)\s+set\s+for\s+(.+?)\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))",
@@ -137,25 +173,52 @@ def chatbot_response_logic(request):
 
         for pattern in gpt_reminder_patterns:
             match = re.search(pattern, text, re.IGNORECASE)
-            if match:   
+            if match:
                 title = match.group(1).strip()
                 time_str = match.group(2).strip()
-                return ('reminder', 'create', {'title': title, 'time': time_str})
-
-
+                return ('reminder', 'create', {
+                    'title': title,
+                    'time': time_str
+                })
+    
     # --- SCHEDULE / WELLNESS ---
-        if any(kw in text for kw in ["schedule", "what do i have", "what's planned", "today", "plan my day"]):
+        schedule_keywords = [
+        "what's on", "what do i have", "what's planned", "today", "plan my day", 
+        "my schedule", "today's tasks", "plan today", "schedule for today", 
+        "what do i need to do", "what are my plans", "do i have anything", "show my schedule"
+        ]
+
+        if any(kw in text for kw in schedule_keywords):
             return ('schedule', 'view', None)
 
         if any(w in text for w in ["wellness", "wellbeing", "how am i doing", "health stats"]):
             return ('wellness', 'check', None)
+        
+        recipe_keywords = ["recipe", "meal idea", "what can i cook", "cook", "healthy meal", "spag bol", "spaghetti bolognese"]
+        if any(kw in text for kw in recipe_keywords):
+            return ('recipe', 'get', {'query': text})
+
+
+        productivity_keywords = [
+            "review my productivity", "how productive was i", "productivity summary",
+            "check my productivity", "my productivity today", "productivity report"
+        ]
+        if any(kw in text for kw in productivity_keywords):
+            return ('productivity', 'review', None)
+        
+        weekly_productivity_keywords = [
+            "review my week", "weekly productivity", "productivity this week", "how did i do this week", "review week"
+        ]
+        if any(kw in text for kw in weekly_productivity_keywords):
+            return ('productivity', 'review_week', None)
+
+
 
         return ('unknown', None, None)
     
     def create_event(request, user, title, time_str, original_text=None):
         try:
-            now = timezone_now()
-            
+            now = timezone_now().replace(second=0, microsecond=0)            
             if not title:
                 return "Please specify what event you'd like to schedule."
 
@@ -204,15 +267,10 @@ def chatbot_response_logic(request):
                 start_hour = 0
 
             # Create start_time as naive datetime first
-            naive_start_time = datetime.combine(today, datetime.min.time().replace(
-                hour=start_hour,
-                minute=start_minute
-            ))
-            
+            naive_start_time = datetime.combine(today, time(hour=start_hour, minute=start_minute))              
             # Make timezone aware
-            start_time = make_aware(naive_start_time)
-
-            # If end time is specified, parse it
+            london = timezone("Europe/London")
+            start_time = make_aware(naive_start_time, timezone=london)
             if match.group(4):
                 end_hour = int(match.group(4))
                 end_minute = int(match.group(5) or 0)
@@ -224,13 +282,13 @@ def chatbot_response_logic(request):
                     end_hour = 0
 
                 # Create end_time as naive datetime first
-                naive_end_time = datetime.combine(today, datetime.min.time().replace(
-                    hour=end_hour,
-                    minute=end_minute
-                ))
+                naive_end_time = datetime.combine(today, time(hour=end_hour, minute=end_minute))                  
                 
                 # Make timezone aware
-                end_time = make_aware(naive_end_time)
+                london = timezone("Europe/London")
+
+                end_time = make_aware(naive_end_time, timezone=london)
+                
             else:
                 # Default to 1 hour duration
                 end_time = start_time + timedelta(hours=1)
@@ -282,9 +340,14 @@ def chatbot_response_logic(request):
         if not events:
             return "You have no events scheduled for today."
         
-        events_list = [f"• {e.title} at {e.start_time.strftime('%I:%M %p')} - {e.end_time.strftime('%I:%M %p')}" for e in events]
-        return "Today's schedule:\n" + "\n".join(events_list)
-    
+        greeting = "🗓️ Let's plan your day! Here's what you have coming up:\n\n"
+        event_lines = [
+            f"• **{e.title.strip().capitalize()}** ⏰ {e.start_time.strftime('%-I:%M %p')} → {e.end_time.strftime('%-I:%M %p')}"
+            for e in events
+        ]
+        
+        return greeting + "\n".join(event_lines)
+        
     try:
         if request.method != "POST":
             return JsonResponse({"error": "Invalid request method"}, status=400)
@@ -465,7 +528,37 @@ def chatbot_response_logic(request):
                     else:
                         response = f"❌ Couldn't find an event titled '{title}' for today."
 
+            elif action == 'schedule' and category == 'view':                response = get_schedule_summary()
             
+            elif action == 'recipe' and category == 'get':
+                query = details.get('query', 'healthy recipe')
+                system_prompt = (
+                    "You are a health-conscious AI assistant. Provide a healthy, simple recipe in markdown format "
+                    "based on the user's query. Always keep it concise, nutritious, and suitable for general wellness goals."
+                )
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": query}
+                ]
+                try:
+                    response = openai.ChatCompletion.create(
+                        model="gpt-4",
+                        messages=messages,      
+                        max_tokens=600,
+                        temperature=0.7
+                    )
+                    recipe = response["choices"][0]["message"]["content"].strip()
+                    ChatMessage.objects.create(
+                        user=request.user,
+                        role='assistant',
+                        content=recipe,
+                        timestamp=timezone_now()
+                    )
+                    return JsonResponse({"response": recipe})
+                except Exception as e:
+                    logger.error(f"Error fetching recipe: {e}")
+                    return JsonResponse({"response": "Sorry, I couldn’t fetch a recipe right now. Please try again later."})
+
             elif action == 'task':
                 if category == 'create' and details.get('title'):
                     title = details['title']
@@ -527,6 +620,73 @@ def chatbot_response_logic(request):
                 else:
                     response = "❌ Invalid reminder format. Please include a title and a time like 'add reminder to call mom at 6 PM'."
                 
+            elif action == 'productivity' and category == 'review':
+                today = timezone_now().date()
+                completed_tasks = Task.objects.filter(user=request.user, completed=True, due_date__date=today)
+                events_today = CalendarEvent.objects.filter(user=request.user, start_time__date=today)
+                wellness = DailyWellness.objects.filter(user=request.user, date=today).first()
+
+                summary = [
+                    f"📋 **Tasks Completed**: {completed_tasks.count()}",
+                    f"📅 **Events Attended**: {events_today.count()}"
+                ]
+
+                if wellness:
+                    summary += [
+                        f"💧 Water: {wellness.water_intake}/{wellness.water_goal}",
+                        f"🏃 Breaks: {wellness.movement_breaks}/{wellness.breaks_goal}",
+                        f"🥗 Meals: {wellness.healthy_meals}/{wellness.meals_goal}"
+                    ]
+                else:
+                    summary.append("ℹ️ No wellness data recorded yet.")
+
+                response = "Here’s your productivity summary for today:\n\n" + "\n".join(summary)
+
+            elif action == 'productivity' and category == 'review_week':
+                today = timezone_now().date()
+                start_of_week = today - timedelta(days=today.weekday())  # Start of the week (Monday)
+    
+                tasks = Task.objects.filter(
+                    user=request.user,
+                    completed=True,
+                    due_date__date__range=(start_of_week, today)
+                )
+                events = CalendarEvent.objects.filter(
+                    user=request.user,
+                    start_time__date__range=(start_of_week, today)
+                )
+                wellness_entries = DailyWellness.objects.filter(
+                    user=request.user,
+                    date__range=(start_of_week, today)
+                )
+
+                total_days = (today - start_of_week).days + 1
+                total_water = sum(entry.water_intake for entry in wellness_entries)
+                total_meals = sum(entry.healthy_meals for entry in wellness_entries)
+                total_breaks = sum(entry.movement_breaks for entry in wellness_entries)
+
+                avg_water = total_water // total_days if total_days else 0
+                avg_meals = total_meals // total_days if total_days else 0
+                avg_breaks = total_breaks // total_days if total_days else 0
+
+                response = (
+                    f"📊 **Weekly Productivity Summary** ({start_of_week.strftime('%b %d')}–{today.strftime('%b %d')}):\n\n"
+                    f"✅ **Tasks Completed**: {tasks.count()}\n"
+                    f"📅 **Events Attended**: {events.count()}\n"
+                    f"💧 **Water Avg**: {avg_water} glasses/day\n"
+                    f"🏃 **Movement Breaks Avg**: {avg_breaks} per day\n"
+                    f"🥗 **Healthy Meals Avg**: {avg_meals} per day\n\n"
+                )
+
+                # Add a motivational summary based on productivity
+                if tasks.count() >= 5 and avg_meals >= 3 and avg_water >= 7:
+                    summary = "Great job! You stayed productive and on top of your wellness goals this week. 🌟"
+                elif tasks.count() >= 3:
+                    summary = "Nice work getting things done! Try to boost your healthy habits next week. 💪"
+                else:
+                    summary = "This week was a bit lighter — consider setting some small goals next week to stay on track. 🌱"
+
+                response += summary
 
             elif action == 'wellness':
                 today = timezone_now().date()
@@ -551,13 +711,22 @@ def chatbot_response_logic(request):
                 )
 
             elif action == 'unknown':
-                system_prompt = (
-                    "You're a friendly productivity assistant. "
-                    "When the user's input is unclear or missing important details, "
-                    "you politely ask clarifying questions. "
-                    "For example, if the user says 'add gym', you should ask 'What time would you like to schedule your gym event?'. "
-                    "Always be supportive and concise."
-                )
+                if any(w in user_message.lower() for w in ["i'm stressed", "i feel stressed", "feeling anxious", "overwhelmed", "burnt out", "need help relaxing"]):
+                    system_prompt = (
+                        "You're a supportive AI assistant trained in mental wellbeing. "
+                        "When the user expresses stress, overwhelm, or low mood, "
+                        "you respond with empathy and immediately offer helpful, simple coping strategies. "
+                        "Provide practical suggestions like deep breathing, quick stretches, a short walk, listening to music, journaling, or guided meditations. "
+                        "Keep your tone warm, calm, and uplifting. Avoid asking the user too many questions before offering help."
+                    )
+                else:
+                    system_prompt = (
+                        "You're a friendly productivity assistant. "
+                        "When the user's input is unclear or missing important details, "
+                        "you politely ask clarifying questions. "
+                        "For example, if the user says 'add gym', you should ask 'What time would you like to schedule your gym event?'. "
+                        "Always be supportive and concise."
+                    )
 
                 messages = [
                     {"role": "system", "content": system_prompt},
@@ -566,7 +735,7 @@ def chatbot_response_logic(request):
                 response = openai.ChatCompletion.create(
                     model="gpt-4",
                     messages=messages,
-                    max_tokens=150,
+                    max_tokens=600,
                     temperature=0.7
                 )   
 
@@ -627,7 +796,7 @@ def chatbot_response_logic(request):
         response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=messages,
-            max_tokens=150,
+            max_tokens=600,
             temperature=0.7
         )
         

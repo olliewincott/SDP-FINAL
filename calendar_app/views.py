@@ -577,6 +577,7 @@ def update_event_time(request):
 @login_required
 def add_task(request):
     if request.method == "POST":
+        task_id = request.POST.get('id')  # <-- check if editing an existing task
         title = request.POST.get('title')
         description = request.POST.get('description', '')
         due_date = request.POST.get('due_date')
@@ -586,12 +587,27 @@ def add_task(request):
 
         try:
             parsed_due_date = django_parse_datetime(due_date)
-            task = Task.objects.create(
-                user=request.user,
-                title=title,
-                description=description,
-                due_date=parsed_due_date
-            )
+
+            if task_id:
+                # 🔁 Update existing task
+                try:
+                    task = Task.objects.get(id=task_id, user=request.user)
+                except Task.DoesNotExist:
+                    return JsonResponse({'success': False, 'error': 'Task not found.'})
+
+                task.title = title
+                task.description = description
+                task.due_date = parsed_due_date
+                task.save()
+            else:
+                # ➕ Create new task
+                task = Task.objects.create(
+                    user=request.user,
+                    title=title,
+                    description=description,
+                    due_date=parsed_due_date
+                )
+
             return JsonResponse({
                 'success': True,
                 'task': {
@@ -601,6 +617,7 @@ def add_task(request):
                     'due_date': task.due_date.isoformat()
                 }
             })
+
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 
