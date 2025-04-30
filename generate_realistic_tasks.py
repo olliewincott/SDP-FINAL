@@ -1,65 +1,67 @@
+#!/usr/bin/env python
+import os
+import django
 import random
-from datetime import datetime, timedelta
-from django.contrib.auth.models import User
+from datetime import datetime, timedelta, time
+
+# Setup Django environment
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sdproject.settings')  # Update if your settings file path differs
+django.setup()
+
 from django.utils import timezone
+from django.contrib.auth.models import User
 from calendar_app.models import Task
 
-# Get the user "Oliver_Wincott"
+# Get the user
 user = User.objects.get(username="Oliver_Wincott")
 
-# List of realistic tasks with title and description
-realistic_tasks = [
-    ("Send off invoice", "Send the invoice to the client for the completed project."),
-    ("Call client", "Call the client to follow up on project details."),
-    ("Prepare presentation", "Prepare slides and materials for the upcoming presentation."),
-    ("Schedule meeting", "Set up a meeting to discuss project progress."),
-    ("Review project report", "Review the project report and provide feedback."),
-    ("Update website", "Update the website with the latest product information."),
-    ("Order office supplies", "Place an order for the required office supplies."),
-    ("Plan team outing", "Organize the details for the upcoming team outing."),
-    ("Follow up on email", "Follow up on important emails with the client."),
-    ("Draft contract", "Draft a new contract for an upcoming project."),
-    ("Review budget", "Review and adjust the budget for this quarter."),
-    ("Organize files", "Sort and organize the digital files on the shared drive."),
-    ("Attend client meeting", "Participate in a meeting with a potential client."),
-    ("Submit expense report", "Compile and submit the monthly expense report."),
-    ("Conduct training", "Run a training session on the new software."),
-    ("Plan marketing strategy", "Develop a marketing strategy for the next product launch."),
-    ("Update CRM", "Update the CRM system with the latest client data."),
-    ("Prepare invoice", "Prepare and send out the invoice for recent services."),
-    ("Research new tools", "Investigate new tools to improve workflow."),
-    ("Send follow-up email", "Send a follow-up email after a client meeting."),
+# Define realistic university-focused tasks
+academic_tasks = [
+    ("Write essay", "Draft and complete assigned university essay."),
+    ("Review lecture notes", "Go over notes from today's lecture."),
+    ("Group project update", "Coordinate with team and submit update."),
+    ("Read assigned chapter", "Read the required chapter for upcoming seminar."),
+    ("Submit assignment", "Finalize and upload your coursework."),
+    ("Attend office hours", "Meet professor to discuss coursework."),
+    ("Lab report", "Complete and submit lab report."),
+    ("Practice problems", "Solve exercises to prepare for exams."),
+    ("Presentation prep", "Prepare slides and speaking notes."),
+    ("Library research", "Research sources for academic writing."),
+    ("Edit draft", "Refine the first draft of your paper."),
+    ("Check plagiarism", "Run assignment through plagiarism checker."),
+    ("Plan study schedule", "Organize study sessions for exams."),
+    ("Email professor", "Clarify assignment requirements."),
+    ("Watch lecture recording", "Catch up on missed lecture."),
+    ("Peer review", "Give feedback to peer’s draft."),
+    ("Backup files", "Ensure all work is saved and backed up."),
+    ("Join study group", "Collaborate with classmates."),
+    ("Complete quiz", "Take the scheduled online quiz."),
+    ("Set calendar reminders", "Schedule deadlines and meetings."),
 ]
 
-# Define the start date: 30 days in the past
+# Time window: 30 days in past to 30 days in future
 start_date = datetime.today().date() - timedelta(days=30)
-# Total days to generate: 60 days (30 past + 30 future)
-days_to_generate = 60
+end_date = datetime.today().date() + timedelta(days=30)
 
-for i in range(days_to_generate):
+for i in range((end_date - start_date).days):
     current_date = start_date + timedelta(days=i)
-    # Randomly decide how many tasks to generate for this day (e.g., 0 to 3 tasks)
-    num_tasks = random.randint(0, 3)
-    for j in range(num_tasks):
-        # Choose a realistic task template
-        title, description = random.choice(realistic_tasks)
-        # Generate a realistic due time between 8 AM and 6 PM
-        hour = random.randint(8, 18)
+    # More tasks on weekdays
+    task_count = random.randint(1, 3) if current_date.weekday() < 5 else random.choices([0, 1, 2], weights=[0.4, 0.4, 0.2])[0]
+
+    for _ in range(task_count):
+        title, description = random.choice(academic_tasks)
+        hour = random.randint(9, 20)
         minute = random.choice([0, 15, 30, 45])
-        due_time = datetime.combine(current_date, datetime.min.time()) + timedelta(hours=hour, minutes=minute)
-        due_time = timezone.make_aware(due_time)
-        
-        # Randomly determine if the task is completed
-        completed = random.choice([True, False])
-        
-        # Create the task with the realistic title and description
+        due_time = timezone.make_aware(datetime.combine(current_date, time(hour, minute)))
+        completed = random.choices([True, False], weights=[0.4, 0.6])[0]
+
         task = Task.objects.create(
             user=user,
             title=title,
             description=description,
-            completed=completed,
-            due_date=due_time
+            due_date=due_time,
+            completed=completed
         )
-        print(f"Created task: {task.title} due {due_time}, completed: {completed}")
+        print(f"📝 Created: {title} on {due_time}, completed: {completed}")
 
-print("Realistic task data generation complete!")
+print("✅ University-style academic tasks generated.")

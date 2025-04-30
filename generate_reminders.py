@@ -4,7 +4,7 @@ import random
 from datetime import datetime, timedelta, time
 
 # Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'your_project.settings')  # <- CHANGE THIS
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sdproject.settings')  # <- CHANGE THIS
 django.setup()
 
 from django.utils import timezone

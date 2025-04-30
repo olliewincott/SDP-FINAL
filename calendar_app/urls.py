@@ -40,6 +40,7 @@ urlpatterns = [
     path("update_wellness_goals/", update_wellness_goals, name="update_wellness_goals"),
     path('chat-history/', views.get_chat_history, name='get_chat_history'), 
     path('clear-chat-history/', views.clear_chat_history, name='clear_chat_history'),  # ✅ New
+    path('api/add_task/', views.add_task_api, name='add_task_api'),
 
 
 ]

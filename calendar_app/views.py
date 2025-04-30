@@ -286,6 +286,7 @@ def delete_event(request, event_id):
 
 @login_required
 def all_tasks_json(request):
+    
     """
     Returns all tasks as a JSON response for the logged-in user.
     """
@@ -824,3 +825,35 @@ def clear_chat_history(request):
         ChatMessage.objects.filter(user=request.user).delete()
         return JsonResponse({"success": True})
     return JsonResponse({"error": "Invalid request."}, status=400)
+
+
+@csrf_exempt
+def add_task_api(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            title = data.get('title')
+            description = data.get('description')
+            due_date = data.get('due_date')
+
+            if not title:
+                return JsonResponse({'error': 'Missing title'}, status=400)
+
+            # TEMPORARY DUMMY USER (for testing only)
+            user = User.objects.first()  # Get the first user from DB (assumes one exists)
+
+            if not user:
+                return JsonResponse({'error': 'No user found in database.'}, status=400)
+
+            Task.objects.create(
+                user=user,
+                title=title,
+                description=description,
+                due_date=due_date
+            )
+            return JsonResponse({'message': 'Task created successfully!'}, status=201)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Only POST allowed'}, status=405)
